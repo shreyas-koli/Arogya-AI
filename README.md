@@ -72,6 +72,7 @@ Arogya-AI/
 Detailed specifications governing system architecture, safety constraints, data policies, and execution dependencies are maintained in [`docs/`](docs/):
 
 * **[System Architecture (ARCHITECTURE.md)](docs/architecture/ARCHITECTURE.md):** Target component boundaries, proposed request flow, and trust boundaries.
+* **[Configuration & Environment Validation (CONFIGURATION.md)](docs/architecture/CONFIGURATION.md):** Settings reference, environment variable mappings, validation rules, and runtime hardening.
 * **[API Conventions (API_CONVENTIONS.md)](docs/architecture/API_CONVENTIONS.md):** REST API design conventions, prefixing, OpenAPI documentation standards, and error envelopes.
 * **[Intended Use & Non-Goals (INTENDED_USE_AND_NON_GOALS.md)](docs/governance/INTENDED_USE_AND_NON_GOALS.md):** Authorized research scope, explicit non-goals, and clinical safety tenets.
 * **[Data Governance Framework (DATA_GOVERNANCE.md)](docs/governance/DATA_GOVERNANCE.md):** Data classification, zero-PHI policy, dataset provenance, and incident response.

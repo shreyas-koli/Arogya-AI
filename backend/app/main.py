@@ -45,8 +45,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         debug=app_settings.debug,
         openapi_tags=OPENAPI_TAGS,
         openapi_url=app_settings.openapi_url,
-        docs_url=app_settings.docs_url,
-        redoc_url=app_settings.redoc_url,
+        docs_url=app_settings.docs_url if app_settings.openapi_url else None,
+        redoc_url=app_settings.redoc_url if app_settings.openapi_url else None,
     )
 
     # 3. Store settings in application state for dependency injection

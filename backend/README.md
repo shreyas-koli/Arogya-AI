@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 2 (Backend Platform) — Phase 2.6: API Conventions & Generated OpenAPI Documentation.<br/>
-> Standardized API conventions, OpenAPI 3.1.0 documentation, and contract regression tests (`test_openapi.py`) are established. Detailed architecture: [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
+> **Status:** Module 2 (Backend Platform) — Phase 2.7: Backend Configuration, Environment Validation & Runtime Hardening.<br/>
+> Validated settings management, environment normalization, runtime safety invariants, OpenAPI documentation controls, and configuration regression tests (`test_settings.py`) are established. Full specifications: [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md) and [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md).
 
 ---
 
@@ -54,6 +54,12 @@ To inspect the generated OpenAPI JSON schema without starting the HTTP server:
 ```powershell
 .\.venv\Scripts\python.exe -c "import json; from backend.app.main import create_app; print(json.dumps(create_app().openapi(), indent=2))"
 ```
+
+#### Disabling Documentation Routes in Staging or Production
+In production, interactive documentation can be disabled via environment variables:
+* Set `OPENAPI_URL=none`, `DOCS_URL=none`, or `REDOC_URL=none` (or empty strings in `.env`).
+* Disabling `OPENAPI_URL` automatically cascades to suppress both Swagger UI and ReDoc.
+* *Security Notice:* Disabling documentation is an operational hygiene control; it does **not** replace authentication, network authorization, or access control. Reference: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md).
 
 ### Manual Shell Activation (Optional)
 ```powershell
@@ -147,6 +153,8 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 * Runtime response payload alignment against OpenAPI component schemas.
 * Custom API prefix adaptation in generated schema and runtime routing.
 * Configuration-driven interactive docs enabling and disabling (`/docs`, `/redoc`, `/openapi.json`).
+* Settings validation, environment variable parsing, case normalization, and port bounds checking.
+* Production debug mode prevention and configuration isolation across application instances.
 
 ---
 
@@ -181,7 +189,8 @@ Arogya-AI/
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
     │   ├── test_health.py
     │   ├── test_errors.py
-    │   └── test_openapi.py # OpenAPI schema & contract regression tests
+    │   ├── test_openapi.py # OpenAPI schema & contract regression tests
+    │   └── test_settings.py# Settings validation & runtime hardening tests
     ├── requirements.txt # Pinned core backend and testing dependencies
     └── README.md        # Backend developer guide and setup notes
 ```
@@ -190,9 +199,8 @@ Arogya-AI/
 
 ## 9. Roadmap Status & Deferred Features
 
-* **Phase 2.6 (Completed):** Established API conventions ([`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md)), refined OpenAPI 3.1 schema documentation, and added contract regression tests.
-* **Phase 2.7 (Next):** Containerization / Docker configuration and CI test workflow alignment.
-* **Module 3:** Database persistence, PostgreSQL schemas, and Alembic migrations.
+* **Phase 2.7 (Completed):** Backend configuration, environment validation, runtime hardening, and Settings regression tests (`test_settings.py`). **Module 2 is now complete.**
+* **Module 3 (Next):** Database persistence, PostgreSQL schemas, and Alembic migrations.
 
 ---
 

@@ -78,6 +78,40 @@ class Settings(BaseSettings):
         description="Cryptographic secret key for session/token verification (Module 7)",
     )
 
+    @field_validator("app_name")
+    @classmethod
+    def validate_app_name(cls, name: str) -> str:
+        """Ensure application name is not empty or whitespace-only."""
+        cleaned = name.strip()
+        if not cleaned:
+            raise ValueError("app_name cannot be empty or whitespace-only")
+        return cleaned
+
+    @field_validator("app_env", mode="before")
+    @classmethod
+    def normalize_app_env(cls, env: object) -> object:
+        """Allow case-insensitive environment declarations (e.g. 'PRODUCTION' -> 'production')."""
+        if isinstance(env, str):
+            return env.strip().lower()
+        return env
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def normalize_log_level(cls, level: object) -> object:
+        """Allow case-insensitive logging level declarations (e.g. 'info' -> 'INFO')."""
+        if isinstance(level, str):
+            return level.strip().upper()
+        return level
+
+    @field_validator("api_host")
+    @classmethod
+    def validate_api_host(cls, host: str) -> str:
+        """Ensure API server host interface is not empty or whitespace-only."""
+        cleaned = host.strip()
+        if not cleaned:
+            raise ValueError("api_host cannot be empty or whitespace-only")
+        return cleaned
+
     @field_validator("api_port")
     @classmethod
     def validate_port_range(cls, port: int) -> int:
@@ -85,6 +119,58 @@ class Settings(BaseSettings):
         if not (1 <= port <= 65535):
             raise ValueError(f"api_port must be between 1 and 65535, got {port}")
         return port
+
+    @field_validator("api_prefix")
+    @classmethod
+    def validate_api_prefix(cls, prefix: str) -> str:
+        """Ensure routing prefix starts with '/' and is cleanly formatted."""
+        cleaned = prefix.strip()
+        if not cleaned:
+            raise ValueError("api_prefix cannot be empty; specify a valid root path like '/' or '/api/v1'")
+        if not cleaned.startswith("/"):
+            raise ValueError(f"api_prefix must start with '/', got {prefix!r}")
+        return cleaned.rstrip("/") if cleaned != "/" else "/"
+
+    @field_validator("openapi_url", "docs_url", "redoc_url", mode="before")
+    @classmethod
+    def validate_doc_url(cls, v: object) -> str | None:
+        """Normalize and validate documentation route paths.
+
+        Supports explicitly disabling endpoints via '', 'none', 'null', 'false', 'off', or 'disabled'.
+        Non-empty route paths must start with a forward slash ('/').
+        """
+        if v is None:
+            return None
+        if isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned or cleaned.lower() in {"none", "null", "false", "off", "disabled"}:
+                return None
+            if not cleaned.startswith("/"):
+                raise ValueError(f"Documentation route path must start with '/', got {v!r}")
+            return cleaned.rstrip("/") if cleaned != "/" else "/"
+        return v
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: object) -> str | None:
+        """Convert empty or whitespace-only database connection strings to None."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            cleaned = v.strip()
+            return cleaned if cleaned else None
+        return v
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def normalize_secret_key(cls, v: object) -> object:
+        """Convert empty or whitespace-only secret keys to None."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            cleaned = v.strip()
+            return cleaned if cleaned else None
+        return v
 
     @field_validator("debug")
     @classmethod

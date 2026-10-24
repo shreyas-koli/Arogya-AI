@@ -148,14 +148,14 @@ def test_interactive_docs_endpoints(client: TestClient) -> None:
 
 
 def test_documentation_routes_configurable_and_disableable() -> None:
-    """Documentation endpoints can be disabled via Settings, returning standard 404s."""
+    """Documentation endpoints can be disabled via Settings string tokens, returning standard 404s."""
     disabled_settings = Settings(
         app_name="Arogya AI",
         app_env="testing",
         debug=False,
-        docs_url=None,
-        redoc_url=None,
-        openapi_url=None,
+        docs_url="none",
+        redoc_url="disabled",
+        openapi_url="",
     )
     app = create_app(disabled_settings)
     client = TestClient(app)
