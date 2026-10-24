@@ -1,10 +1,10 @@
 """Arogya AI - FastAPI Application Factory.
 
 Constructs and configures the FastAPI application instance using validated settings.
-Note: Endpoints, database connections, and middleware are added in subsequent phases.
 """
 
 from fastapi import FastAPI
+from backend.app.api.health import router as health_router
 from backend.app.settings import Settings, get_settings
 
 
@@ -15,7 +15,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings: Optional Settings instance; uses cached get_settings() if None.
 
     Returns:
-        Configured FastAPI application instance.
+        Configured FastAPI application instance with registered routes.
     """
     app_settings = settings or get_settings()
 
@@ -31,6 +31,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Store settings in application state for downstream dependency access
     app.state.settings = app_settings
+
+    # Mount versioned API routes under the configured prefix
+    prefix = app_settings.api_prefix.rstrip("/")
+    app.include_router(health_router, prefix=prefix)
 
     return app
 
