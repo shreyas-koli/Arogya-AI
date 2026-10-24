@@ -1,10 +1,14 @@
 """Arogya AI - FastAPI Application Factory.
 
-Constructs and configures the FastAPI application instance using validated settings.
+Constructs and configures the FastAPI application instance using validated settings,
+attaching structured logging, request correlation tracing, and error handling.
 """
 
 from fastapi import FastAPI
 from backend.app.api.health import router as health_router
+from backend.app.errors import register_exception_handlers
+from backend.app.logging import setup_logging
+from backend.app.middleware import RequestContextMiddleware
 from backend.app.settings import Settings, get_settings
 
 
@@ -15,10 +19,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings: Optional Settings instance; uses cached get_settings() if None.
 
     Returns:
-        Configured FastAPI application instance with registered routes.
+        Configured FastAPI application instance with middleware, error handlers, and routes.
     """
     app_settings = settings or get_settings()
 
+    # 1. Initialize structured logging for this configuration
+    setup_logging(log_level=app_settings.log_level)
+
+    # 2. Instantiate application
     app = FastAPI(
         title=app_settings.app_name,
         description=(
@@ -29,10 +37,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         debug=app_settings.debug,
     )
 
-    # Store settings in application state for downstream dependency access
+    # 3. Store settings in application state for dependency injection
     app.state.settings = app_settings
 
-    # Mount versioned API routes under the configured prefix
+    # 4. Attach request tracing and correlation middleware
+    app.add_middleware(RequestContextMiddleware)
+
+    # 5. Register application-wide exception handlers with safe error envelopes
+    register_exception_handlers(app)
+
+    # 6. Mount versioned API routes under the configured prefix
     prefix = app_settings.api_prefix.rstrip("/")
     app.include_router(health_router, prefix=prefix)
 
