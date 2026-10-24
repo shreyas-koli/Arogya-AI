@@ -4,16 +4,15 @@ Validates process liveness (/health), application readiness (/ready),
 versioned API prefix mounting, and 404 handling.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import create_app
 from backend.app.settings import Settings
 
 
-def test_health_endpoint_default_prefix():
+@pytest.mark.unit
+def test_health_endpoint_default_prefix(client: TestClient):
     """Verify GET /api/v1/health returns HTTP 200 and expected liveness fields."""
-    app = create_app()
-    client = TestClient(app)
-
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.json()
@@ -21,23 +20,22 @@ def test_health_endpoint_default_prefix():
     assert data["service"] == "Arogya AI"
 
 
-def test_readiness_endpoint_default_prefix():
+@pytest.mark.unit
+def test_readiness_endpoint_default_prefix(client: TestClient):
     """Verify GET /api/v1/ready returns HTTP 200 and documented readiness status."""
-    app = create_app()
-    client = TestClient(app)
-
     response = client.get("/api/v1/ready")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ready"
     assert data["service"] == "Arogya AI"
-    assert data["environment"] == "development"
+    assert data["environment"] == client.app.state.settings.app_env
     assert "checks" in data
     assert data["checks"]["core_api"]["status"] == "ready"
     assert data["checks"]["database"]["status"] == "unconfigured"
     assert data["checks"]["ml_inference"]["status"] == "unconfigured"
 
 
+@pytest.mark.unit
 def test_custom_api_prefix():
     """Verify routes adapt dynamically when api_prefix is changed in settings."""
     custom_settings = Settings(api_prefix="/api/v2")
@@ -58,11 +56,9 @@ def test_custom_api_prefix():
     assert old_resp.status_code == 404
 
 
-def test_nonexistent_route_returns_404():
+@pytest.mark.unit
+def test_nonexistent_route_returns_404(client: TestClient):
     """Verify nonexistent routes return HTTP 404."""
-    app = create_app()
-    client = TestClient(app)
-
     response = client.get("/api/v1/unknown")
     assert response.status_code == 404
 

@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 2 (Backend Platform) — Phase 2.4: Error Handling, Request Validation, Structured Logging & Request IDs.<br/>
-> Implemented application-wide error envelopes, input validation error sanitization, standard Python structured logging, and request correlation IDs (`X-Request-ID`).
+> **Status:** Module 2 (Backend Platform) — Phase 2.5: Pytest Configuration, Test Hardening & Local Run Automation.<br/>
+> Standardized root pytest configuration (`pytest.ini`), shared test fixtures (`conftest.py`), and local run automation (`scripts/run_backend.ps1`) are established.
 
 ---
 
@@ -25,27 +25,33 @@ This directory contains the Python backend service, REST API routers, domain log
 
 ---
 
-## 2. Environment Activation & Local Execution
+## 2. Local Execution & Automation Scripts
 
-### Activating the Virtual Environment in PowerShell
+A dedicated PowerShell runner ([`scripts/run_backend.ps1`](../scripts/run_backend.ps1)) automates local development server startup and test execution using the isolated `.venv` interpreter:
+
+### Starting the Local Development Server
 From the repository root (`C:\_code\Projects\Arogya-AI`):
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+.\scripts\run_backend.ps1
 ```
 
-*(If PowerShell script execution is restricted, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first).*
+By default, the server binds to localhost loopback (`127.0.0.1:8000`) with auto-reload enabled.
 
-### Starting the Local Development Server
-To launch the FastAPI ASGI server with auto-reload:
+#### Optional CLI Flags:
+* **Custom Port:** `.\scripts\run_backend.ps1 -Port 8080`
+* **Disable Reload:** `.\scripts\run_backend.ps1 -NoReload`
+* **Run Tests:** `.\scripts\run_backend.ps1 -Test`
 
-```powershell
-.\.venv\Scripts\uvicorn.exe backend.app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Once running, interactive OpenAPI documentation is available at:
+### Interactive API Documentation
+Once running, OpenAPI documentation is available at:
 * Swagger UI: `http://127.0.0.1:8000/docs`
 * ReDoc: `http://127.0.0.1:8000/redoc`
+
+### Manual Shell Activation (Optional)
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
 ---
 
@@ -110,15 +116,21 @@ Application logging is configured via standard Python `logging` (`backend/app/lo
 
 ## 6. Running Backend Tests
 
-Backend tests are located in `backend/tests/` and use pytest with FastAPI's `TestClient`:
+Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and shared fixtures in [`backend/tests/conftest.py`](tests/conftest.py):
 
+### Executing Tests via Automation Script
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend/tests -v
+.\scripts\run_backend.ps1 -Test
 ```
 
-The test suite validates:
-* Liveness and readiness endpoints (`200 OK`).
-* Consistent error envelopes across 404, 422, and 500 status codes.
+### Direct Pytest Invocation
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+### Test Scope & Coverage:
+* Liveness (`/health`) and readiness (`/ready`) response contracts.
+* Error envelope formatting across 404, 422, and 500 status codes.
 * Field location extraction without echoing sensitive input values.
 * Sanitization of 500 errors to prevent leaking internal exception text.
 * Uniqueness, preservation, and replacement of `X-Request-ID` headers.
@@ -126,39 +138,51 @@ The test suite validates:
 
 ---
 
-## 7. Directory Layout
+## 7. Operational Readiness vs. Clinical Readiness
+
+> **Important Boundary Notice:**<br/>
+> The local development server and automated tests verify **software engineering mechanics only** (HTTP lifecycle, routing, error envelopes, and logging). This does **not** constitute clinical validation, medical device certification, or production deployment readiness. External databases (Module 3), multi-agent pipelines (Module 11), and clinical safety controls (Module 13) are introduced in subsequent modules.
+
+---
+
+## 8. Directory Layout
 
 ```text
-backend/
-├── app/
-│   ├── __init__.py      # Package exports (create_app, Settings, Error models)
-│   ├── main.py          # Application factory, middleware, and router registration
-│   ├── settings.py      # Validated Pydantic settings model
-│   ├── errors.py        # Standard error envelope and exception handlers
-│   ├── logging.py       # Structured JSON logging and contextvar tracking
-│   ├── middleware.py    # RequestContextMiddleware for X-Request-ID tracing
-│   └── api/
-│       ├── __init__.py  # API package exports (health_router)
-│       └── health.py    # /health and /ready probe implementations
-├── tests/
-│   ├── __init__.py      # Backend test package
-│   ├── test_health.py   # Health, readiness, and prefix routing tests
-│   └── test_errors.py   # Error handling, validation, and request-ID tests
-├── requirements.txt     # Pinned core backend and testing dependencies
-└── README.md            # Backend developer guide and setup notes
+Arogya-AI/
+├── pytest.ini           # Root pytest test runner configuration
+├── scripts/
+│   ├── run_backend.ps1  # Local development server and test automation
+│   └── validate_foundation.ps1
+└── backend/
+    ├── app/
+    │   ├── __init__.py  # Package exports (create_app, Settings, Error models)
+    │   ├── main.py      # Application factory, middleware, and router registration
+    │   ├── settings.py  # Validated Pydantic settings model
+    │   ├── errors.py    # Standard error envelope and exception handlers
+    │   ├── logging.py   # Structured JSON logging and contextvar tracking
+    │   ├── middleware.py# RequestContextMiddleware for X-Request-ID tracing
+    │   └── api/
+    │       ├── __init__.py
+    │       └── health.py# /health and /ready probe implementations
+    ├── tests/
+    │   ├── __init__.py  # Backend test package
+    │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
+    │   ├── test_health.py
+    │   └── test_errors.py
+    ├── requirements.txt # Pinned core backend and testing dependencies
+    └── README.md        # Backend developer guide and setup notes
 ```
 
 ---
 
-## 8. Roadmap Status & Deferred Features
+## 9. Roadmap Status & Deferred Features
 
-* **Phase 2.5 (Next):** Pytest configuration hardening, endpoint tests, and local run automation.
-* **Phase 2.6:** Document API conventions and inspect generated OpenAPI documentation.
+* **Phase 2.6 (Next):** Document API conventions and inspect generated OpenAPI documentation.
 * **Module 3:** Database persistence, PostgreSQL schemas, and Alembic migrations.
 
 ---
 
-## 9. Development Principles & Guardrails
+## 10. Development Principles & Guardrails
 
 * **Zero Patient Data Policy:** Real patient health information (PHI) must **never** be placed in this directory or used in test fixtures.
 * **Secrets Management:** Credentials, database passwords, and API keys must remain strictly in untracked local `.env` files; never commit secrets to version control.

@@ -7,10 +7,10 @@ Validates:
 - Generation and propagation of correlation X-Request-ID headers and payloads.
 """
 
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
-from backend.app.main import create_app
-from backend.app.settings import Settings
 
 
 class SamplePayload(BaseModel):
@@ -20,11 +20,9 @@ class SamplePayload(BaseModel):
     session_token: str
 
 
-def test_404_error_envelope():
+@pytest.mark.unit
+def test_404_error_envelope(client: TestClient):
     """Verify nonexistent paths return HTTP 404 with standard error envelope."""
-    app = create_app()
-    client = TestClient(app)
-
     response = client.get("/api/v1/not-a-real-endpoint")
     assert response.status_code == 404
     data = response.json()
@@ -36,17 +34,15 @@ def test_404_error_envelope():
     assert response.headers.get("X-Request-ID") == data["error"]["request_id"]
 
 
-def test_422_validation_error_envelope_sanitized():
+@pytest.mark.unit
+def test_422_validation_error_envelope_sanitized(app: FastAPI):
     """Verify validation errors return HTTP 422 with location info and without echoing sensitive values."""
-    app = create_app()
-
     # Mount temporary route for payload validation verification
     @app.post("/test-validation")
     async def temp_validation_endpoint(payload: SamplePayload):
         return {"status": "ok"}
 
     client = TestClient(app)
-
     sensitive_value = "VERY_SECRET_PATIENT_PASSWORD_123"
     response = client.post(
         "/test-validation",
@@ -69,17 +65,15 @@ def test_422_validation_error_envelope_sanitized():
     assert any("patient_age" in loc for loc in field_locs)
 
     # Critical security check: Ensure the sensitive input value is NOT echoed in the response
-    raw_response_text = response.text
-    assert sensitive_value not in raw_response_text
+    assert sensitive_value not in response.text
 
     # Verify correlation ID consistency
     assert response.headers.get("X-Request-ID") == data["error"]["request_id"]
 
 
-def test_500_internal_server_error_sanitized():
+@pytest.mark.unit
+def test_500_internal_server_error_sanitized(app: FastAPI):
     """Verify unexpected server errors return HTTP 500 without leaking exception details."""
-    app = create_app()
-
     sensitive_exception_text = "DATABASE_PASSWORD_LEAK_SECRET_12345"
 
     # Mount temporary route that triggers an unhandled exception
@@ -88,8 +82,8 @@ def test_500_internal_server_error_sanitized():
         raise RuntimeError(sensitive_exception_text)
 
     client = TestClient(app, raise_server_exceptions=False)
-
     response = client.get("/test-unhandled-error")
+
     assert response.status_code == 500
     data = response.json()
 
@@ -100,11 +94,9 @@ def test_500_internal_server_error_sanitized():
     assert response.headers.get("X-Request-ID") == data["error"]["request_id"]
 
 
-def test_request_id_generation_and_uniqueness():
+@pytest.mark.unit
+def test_request_id_generation_and_uniqueness(client: TestClient):
     """Verify each request receives a unique X-Request-ID header."""
-    app = create_app()
-    client = TestClient(app)
-
     resp1 = client.get("/api/v1/health")
     resp2 = client.get("/api/v1/health")
 
@@ -116,11 +108,9 @@ def test_request_id_generation_and_uniqueness():
     assert id1 != id2
 
 
-def test_client_provided_valid_request_id():
+@pytest.mark.unit
+def test_client_provided_valid_request_id(client: TestClient):
     """Verify trusted client-provided X-Request-ID headers are preserved."""
-    app = create_app()
-    client = TestClient(app)
-
     custom_id = "client-trace-id-abc12345"
     response = client.get("/api/v1/health", headers={"X-Request-ID": custom_id})
 
@@ -128,11 +118,9 @@ def test_client_provided_valid_request_id():
     assert response.headers.get("X-Request-ID") == custom_id
 
 
-def test_client_provided_invalid_request_id_replaced():
+@pytest.mark.unit
+def test_client_provided_invalid_request_id_replaced(client: TestClient):
     """Verify malformed or unsafe client request IDs are rejected and replaced."""
-    app = create_app()
-    client = TestClient(app)
-
     unsafe_id = "<script>alert('xss')</script>"
     response = client.get("/api/v1/health", headers={"X-Request-ID": unsafe_id})
 
