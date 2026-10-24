@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 2 (Backend Platform) — Phase 2.5: Pytest Configuration, Test Hardening & Local Run Automation.<br/>
-> Standardized root pytest configuration (`pytest.ini`), shared test fixtures (`conftest.py`), and local run automation (`scripts/run_backend.ps1`) are established.
+> **Status:** Module 2 (Backend Platform) — Phase 2.6: API Conventions & Generated OpenAPI Documentation.<br/>
+> Standardized API conventions, OpenAPI 3.1.0 documentation, and contract regression tests (`test_openapi.py`) are established. Detailed architecture: [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
 
 ---
 
@@ -43,10 +43,17 @@ By default, the server binds to localhost loopback (`127.0.0.1:8000`) with auto-
 * **Disable Reload:** `.\scripts\run_backend.ps1 -NoReload`
 * **Run Tests:** `.\scripts\run_backend.ps1 -Test`
 
-### Interactive API Documentation
+### Interactive API Documentation & OpenAPI Schema
 Once running, OpenAPI documentation is available at:
-* Swagger UI: `http://127.0.0.1:8000/docs`
-* ReDoc: `http://127.0.0.1:8000/redoc`
+* OpenAPI 3.1 JSON Schema: `http://127.0.0.1:8000/openapi.json`
+* Swagger UI (Interactive Explorer): `http://127.0.0.1:8000/docs`
+* ReDoc (API Reference): `http://127.0.0.1:8000/redoc`
+
+#### Inspecting OpenAPI Schema via Command Line
+To inspect the generated OpenAPI JSON schema without starting the HTTP server:
+```powershell
+.\.venv\Scripts\python.exe -c "import json; from backend.app.main import create_app; print(json.dumps(create_app().openapi(), indent=2))"
+```
 
 ### Manual Shell Activation (Optional)
 ```powershell
@@ -135,6 +142,11 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 * Sanitization of 500 errors to prevent leaking internal exception text.
 * Uniqueness, preservation, and replacement of `X-Request-ID` headers.
 * Dynamic prefix routing and nonexistent route handling.
+* OpenAPI 3.1.0 schema retrieval, route documentation, operation IDs, and tags.
+* Component schema registration (`HealthResponse`, `ReadyResponse`, `ErrorResponse`, etc.).
+* Runtime response payload alignment against OpenAPI component schemas.
+* Custom API prefix adaptation in generated schema and runtime routing.
+* Configuration-driven interactive docs enabling and disabling (`/docs`, `/redoc`, `/openapi.json`).
 
 ---
 
@@ -168,7 +180,8 @@ Arogya-AI/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
     │   ├── test_health.py
-    │   └── test_errors.py
+    │   ├── test_errors.py
+    │   └── test_openapi.py # OpenAPI schema & contract regression tests
     ├── requirements.txt # Pinned core backend and testing dependencies
     └── README.md        # Backend developer guide and setup notes
 ```
@@ -177,7 +190,8 @@ Arogya-AI/
 
 ## 9. Roadmap Status & Deferred Features
 
-* **Phase 2.6 (Next):** Document API conventions and inspect generated OpenAPI documentation.
+* **Phase 2.6 (Completed):** Established API conventions ([`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md)), refined OpenAPI 3.1 schema documentation, and added contract regression tests.
+* **Phase 2.7 (Next):** Containerization / Docker configuration and CI test workflow alignment.
 * **Module 3:** Database persistence, PostgreSQL schemas, and Alembic migrations.
 
 ---

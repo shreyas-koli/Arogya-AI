@@ -6,8 +6,17 @@ Provides lightweight liveness and readiness probes under the configured versione
 from typing import Literal
 from fastapi import APIRouter, Request, status
 from pydantic import BaseModel, Field
+from backend.app.errors import ErrorResponse
 
-router = APIRouter(tags=["Health"])
+router = APIRouter(
+    tags=["Health"],
+    responses={
+        500: {
+            "model": ErrorResponse,
+            "description": "Standard internal server error envelope",
+        }
+    },
+)
 
 
 class HealthResponse(BaseModel):
@@ -56,6 +65,7 @@ class ReadyResponse(BaseModel):
     status_code=status.HTTP_200_OK,
     summary="Liveness Probe",
     description="Lightweight check confirming that the API process is alive and receiving requests.",
+    operation_id="get_health",
 )
 async def get_health(request: Request) -> HealthResponse:
     """Return lightweight process liveness state."""
@@ -77,6 +87,7 @@ async def get_health(request: Request) -> HealthResponse:
         "At Module 2, readiness reflects core runtime initialization; database (Module 3) and ML "
         "components (Modules 9-10) are intentionally marked unconfigured."
     ),
+    operation_id="get_readiness",
 )
 async def get_readiness(request: Request) -> ReadyResponse:
     """Return application readiness state."""

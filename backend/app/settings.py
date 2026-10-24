@@ -54,6 +54,20 @@ class Settings(BaseSettings):
         description="Logging level",
     )
 
+    # API Documentation Configuration
+    openapi_url: str | None = Field(
+        default="/openapi.json",
+        description="Path to OpenAPI JSON schema route, or None to disable",
+    )
+    docs_url: str | None = Field(
+        default="/docs",
+        description="Path to Swagger UI documentation route, or None to disable",
+    )
+    redoc_url: str | None = Field(
+        default="/redoc",
+        description="Path to ReDoc documentation route, or None to disable",
+    )
+
     # Persistence & Security Placeholders (Deferred to Modules 3 & 7)
     database_url: str | None = Field(
         default=None,

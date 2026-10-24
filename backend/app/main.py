@@ -12,6 +12,14 @@ from backend.app.middleware import RequestContextMiddleware
 from backend.app.settings import Settings, get_settings
 
 
+OPENAPI_TAGS = [
+    {
+        "name": "Health",
+        "description": "Liveness and readiness probes for infrastructure monitoring and container orchestrators.",
+    },
+]
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     """FastAPI application factory.
 
@@ -35,6 +43,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ),
         version="0.1.0",
         debug=app_settings.debug,
+        openapi_tags=OPENAPI_TAGS,
+        openapi_url=app_settings.openapi_url,
+        docs_url=app_settings.docs_url,
+        redoc_url=app_settings.redoc_url,
     )
 
     # 3. Store settings in application state for dependency injection
