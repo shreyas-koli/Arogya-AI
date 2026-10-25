@@ -2,10 +2,21 @@
 
 Module 3: Database Persistence & Session Lifecycle.
 Provides the SQLAlchemy declarative base, session factory, FastAPI dependency,
-and connection verification.
+connection verification, and clinical domain entity models.
 """
 
 from backend.app.db.base import Base, metadata
+from backend.app.db.models import (
+    AnalysisRun,
+    AuditEvent,
+    Encounter,
+    Observation,
+    Patient,
+    Role,
+    UploadedAsset,
+    User,
+    user_roles,
+)
 from backend.app.db.session import (
     DatabaseConfigurationError,
     DatabaseConnectionError,
@@ -20,10 +31,18 @@ from backend.app.db.session import (
 )
 
 __all__ = [
+    "AnalysisRun",
+    "AuditEvent",
     "Base",
     "DatabaseConfigurationError",
     "DatabaseConnectionError",
     "DatabaseError",
+    "Encounter",
+    "Observation",
+    "Patient",
+    "Role",
+    "UploadedAsset",
+    "User",
     "check_database_connection",
     "create_db_engine",
     "dispose_engine",
@@ -32,4 +51,5 @@ __all__ = [
     "get_session_factory",
     "metadata",
     "normalize_engine_url",
+    "user_roles",
 ]

@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.2: SQLAlchemy Base, Session Lifecycle & Connection Handling.<br/>
-> Synchronous SQLAlchemy 2.x engine construction, declarative base, session lifecycle dependency injection, and connection verification are established with Psycopg 3. Full specifications: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.3: Initial Entities & Relational Data Models.<br/>
+> SQLAlchemy 2.x declarative entity models for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, and AuditEvent are defined with explicit foreign keys, indexes, and deletion policies. Full specifications: [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md) and [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md).
 
 ---
 
@@ -133,12 +133,16 @@ Application logging is configured via standard Python `logging` (`backend/app/lo
 
 ## 6. Database Persistence, Engine Lifecycle & Session Management
 
-As of Module 3, Phase 3.2, database persistence infrastructure is established under `backend/app/db/`:
+As of Module 3, Phase 3.3, database persistence and domain models are established under `backend/app/db/`:
 
 ### Architecture & Components
 * **Declarative Base (`backend/app/db/base.py`):**
   * Defines SQLAlchemy 2.x `Base` (`DeclarativeBase`) and exposes `metadata`.
-  * In strict compliance with roadmap sequencing, **no entity models exist in Phase 3.2**; clinical domain entities are reserved for Phase 3.3.
+* **Clinical Domain Models (`backend/app/db/models.py`):**
+  * Implements 8 initial domain entities + 1 association table: `User`, `Role`, `user_roles`, `Patient`, `Encounter`, `Observation`, `UploadedAsset`, `AnalysisRun`, and `AuditEvent`.
+  * Utilizes portable types (`Uuid`, `DateTime(timezone=True)`, `JSON`).
+  * Enforces strict referential deletion rules (`RESTRICT` on clinical history, `SET NULL` on audit actor and asset links).
+  * Segregates ground-truth observations from probabilistic AI outputs.
 * **Synchronous Engine (`create_db_engine`):**
   * Configures connection pooling defaults: `pool_pre_ping=True`, `pool_size=5`, `max_overflow=10`, `pool_timeout=30.0`, `pool_recycle=1800`, and a bounded driver connection timeout (`connect_timeout=10`).
   * Lazily initializes connections; engine construction or application factory startup **never initiates an immediate network connection**.
@@ -177,13 +181,22 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-### Running Database Unit Tests Exclusively
+### Running Database & Model Tests Exclusively
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend/tests/test_database.py -v
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_database.py backend/tests/test_models.py -v
 ```
 
 ### Test Scope & Coverage:
-* Declarative base export, MetaData collection, and entity isolation.
+* Declarative base export, MetaData collection, and table registration.
+* Entity mappings for 8 clinical domain tables + 1 explicit association table: `users`, `roles`, `user_roles`, `patients`, `encounters`, `observations`, `uploaded_assets`, `analysis_runs`, `audit_events`.
+* Primary keys (`Uuid`) and foreign key relationships with referential deletion policies (`RESTRICT` on clinical history, `SET NULL` on audit actors and asset links).
+* Uniqueness constraints across usernames, emails, role names, pseudonymous MRNs, and storage paths.
+* Many-to-Many user-role association mechanics and cascade behavior.
+* Patient-Encounter-Observation hierarchy with distinct numeric vs. text observation values.
+* UploadedAsset metadata tracking (with checksums and file sizes) and AnalysisRun model output segregation.
+* AuditEvent operational logging, actor linkages, and privacy safeguards (zero PHI/credentials).
+* Timezone-aware timestamp defaults and non-nullable field constraints.
+* Foreign-key constraint enforcement via SQLite `PRAGMA foreign_keys=ON`.
 * Engine construction laziness, driver scheme validation, and URL normalization (`postgresql+psycopg://`).
 * Rejection of incompatible asynchronous (`asyncpg`) and legacy (`psycopg2`) drivers.
 * Engine singleton caching and deterministic teardown (`dispose_engine`).
@@ -233,13 +246,15 @@ Arogya-AI/
     │   │   ├── __init__.py
     │   │   └── health.py# /health and /ready probe implementations
     │   └── db/
-    │       ├── __init__.py  # Database package exports
+    │       ├── __init__.py  # Database package exports (engine, session, models)
     │       ├── base.py      # SQLAlchemy 2.x declarative base and metadata
+    │       ├── models.py    # Initial healthcare domain entities & user_roles
     │       └── session.py   # Engine, session factory, dependency, and connection check
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
     │   ├── test_database.py # Database engine, session lifecycle, and probe tests
+    │   ├── test_models.py   # Clinical domain entities & relationship tests
     │   ├── test_health.py
     │   ├── test_errors.py
     │   ├── test_openapi.py # OpenAPI schema & contract regression tests
@@ -255,7 +270,8 @@ Arogya-AI/
 * **Module 2 (Completed):** Backend platform, application factory, health probes, error envelopes, logging, contract tests, and runtime hardening.
 * **Phase 3.1 (Completed):** PostgreSQL connection configuration, URI validation, credential masking, and environment safety controls.
 * **Phase 3.2 (Completed):** SQLAlchemy 2.0 declarative base, synchronous engine lifecycle, session dependency injection, and connection verification.
-* **Phase 3.3 (Next):** Domain entities and relational data models (User, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
+* **Phase 3.3 (Completed):** Domain entities and relational data models (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
+* **Phase 3.4 (Next):** Pydantic API data contracts and serialization schemas.
 * **Phase 3.5 (Future):** Alembic migrations and database schema management.
 
 ---

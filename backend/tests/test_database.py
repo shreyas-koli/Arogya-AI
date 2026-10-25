@@ -63,13 +63,12 @@ def postgres_test_settings() -> Settings:
 
 @pytest.mark.unit
 def test_declarative_base_and_metadata_exports():
-    """Verify Declarative Base and MetaData are exported and contain no premature entities."""
+    """Verify Declarative Base and MetaData are correctly exported."""
     assert Base is not None
     assert metadata is not None
     assert isinstance(metadata, MetaData)
     assert Base.metadata is metadata
-    # Phase 3.2 must not introduce entity tables prematurely
-    assert len(metadata.tables) == 0
+    assert hasattr(metadata, "tables")
 
 
 # ---------------------------------------------------------------------------
