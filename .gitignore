@@ -61,6 +61,7 @@ $RECYCLE.BIN/
 
 # Explicitly whitelist the safe documentation template
 !.env.example
+!**/.env.example
 
 # Credentials & cryptographic keys
 *.pem

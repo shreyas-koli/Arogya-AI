@@ -1,0 +1,306 @@
+/* ==============================================================================
+   Arogya AI — Landing Page Styles (Module 4, Phase 4.1)
+   Scoped CSS Module for the initial product landing & verification view.
+   ============================================================================== */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header & Navigation Bar */
+.header {
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brandLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.brandIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #0284c7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stageBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-subtle);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-border);
+}
+
+.stageDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-primary);
+}
+
+/* Main Content Area */
+.main {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+/* Hero Section */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 780px;
+}
+
+.title {
+  font-size: clamp(2.25rem, 4.5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.titleGradient {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Clinical Safety & Research Disclaimer Banner */
+.disclaimerBox {
+  border: 1px solid var(--warning-border);
+  background-color: var(--warning-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  box-shadow: var(--shadow-sm);
+}
+
+.disclaimerIcon {
+  color: var(--warning-icon);
+  flex-shrink: 0;
+  margin-top: var(--space-1);
+}
+
+.disclaimerBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.disclaimerTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--warning-text);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.disclaimerText {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--warning-text);
+  opacity: 0.95;
+}
+
+/* Section Headings */
+.sectionHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sectionSubtitle {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+/* Architecture Pillars Grid */
+.pillarsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+.pillarCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.pillarCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.pillarIconContainer {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background-color: var(--accent-subtle);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillarTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pillarDescription {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* Technical Foundation Spec Box */
+.specCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.specGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.specItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background-color: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.specLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.specValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  padding: var(--space-8) var(--space-6);
+  margin-top: auto;
+}
+
+.footerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.footerText {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.footerNotice {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  .main {
+    padding: var(--space-8) var(--space-4);
+    gap: var(--space-8);
+  }
+
+  .disclaimerBox {
+    flex-direction: column;
+    padding: var(--space-4);
+  }
+
+  .pillarsGrid {
+    grid-template-columns: 1fr;
+  }
+}

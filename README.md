@@ -9,8 +9,8 @@ A modular, research-oriented healthcare intelligence and clinical decision-suppo
 
 ## 1. Project Status
 
-* **Current Stage:** Module 3 (Database Persistence & Relational Data Layer) — **Complete** (Phases 3.1–3.7).
-* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 32 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, and logical backup/restore tooling are implemented and verified with 146 automated tests. Module 4 (Frontend UI Shell & Navigation) is the next scheduled phase.
+* **Current Stage:** Module 4 (Clinical Frontend Application Shell) — Phase 4.1: Initialize Next.js Frontend with TypeScript.
+* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 32 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, and logical backup/restore tooling are implemented and verified with 146 automated tests. Frontend foundation is initialized with Next.js 16 (App Router), TypeScript, ESLint 9, and accessible landing page.
 
 ---
 
@@ -39,9 +39,9 @@ A modular, research-oriented healthcare intelligence and clinical decision-suppo
 
 The following technology stack has been selected for incremental adoption across planned modules:
 
-* **Frontend:** Next.js, React, and TypeScript (planned in Module 4).
-* **Backend:** Python, FastAPI, and Pydantic v2 (planned in Module 2).
-* **Persistence:** PostgreSQL, SQLAlchemy, and Alembic migrations (planned in Module 3).
+* **Frontend:** Next.js 16 (App Router), React 19, and TypeScript with Vanilla CSS design tokens (initialized in Module 4).
+* **Backend:** Python, FastAPI, and Pydantic v2 (Module 2 complete).
+* **Persistence:** PostgreSQL, SQLAlchemy 2.0, and Alembic migrations (Module 3 complete).
 * **Multi-Agent Orchestration:** LangGraph, evaluated for deterministic state routing and checkpointing (planned in Module 11).
 * **Machine Learning & XAI:** scikit-learn, PyTorch, and SHAP, subject to platform compatibility testing (planned in Modules 9–10 & 14).
 * **Local Inference (Optional):** Ollama integration where local open models are suitable (planned in Module 11/12).
@@ -87,7 +87,7 @@ The backend application runtime is configured with Python 3.14+ in the isolated 
 
 ### Quick Start & Verification
 ```powershell
-# 1. Run full test suite (146 tests)
+# 1. Run backend test suite (146 tests)
 .\.venv\Scripts\python.exe -m pytest
 
 # 2. Run backend development server
@@ -95,6 +95,15 @@ The backend application runtime is configured with Python 3.14+ in the isolated 
 
 # 3. Verify database connectivity & schema alignment
 .\.venv\Scripts\python.exe scripts/verify_database.py
+
+# 4. Frontend: Run development server
+cd frontend
+npm run dev
+
+# 5. Frontend: Type-check, lint, and production build
+npm run type-check
+npm run lint
+npm run build
 ```
 
 ### Verified Prerequisites
