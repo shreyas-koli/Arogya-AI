@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.3: Initial Entities & Relational Data Models.<br/>
-> SQLAlchemy 2.x declarative entity models for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, and AuditEvent are defined with explicit foreign keys, indexes, and deletion policies. Full specifications: [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md) and [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.4: Pydantic Request/Response Schemas & Data Contracts.<br/>
+> Decoupled Pydantic v2 data contracts for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent, and generic pagination are established with strict validation, sensitive field shielding, and ORM serialization. Full specifications: [`docs/architecture/API_DATA_CONTRACTS.md`](../docs/architecture/API_DATA_CONTRACTS.md) and [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md).
 
 ---
 
@@ -186,7 +186,23 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_database.py backend/tests/test_models.py -v
 ```
 
+### Running Schema & Data Contract Tests Exclusively
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_schemas.py -v
+```
+
 ### Test Scope & Coverage:
+* Pydantic v2 request/response contracts for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, and AuditEvent domains.
+* Strict input validation with `extra="forbid"` to reject unexpected, undocumented client fields.
+* Automatic string whitespace stripping on all incoming payload fields.
+* Timezone awareness enforcement requiring UTC offsets on timestamps; rejection of naive datetimes.
+* Exclusion of sensitive attributes (`hashed_password`, internal storage paths, server-generated timestamps) from response and request contracts.
+* Prevention of client-injected trusted AI analysis outputs, statuses, and completed timestamps upon run creation.
+* Prevention of client-injected internal file storage paths on uploaded asset metadata creation.
+* Asset checksum format validation (SHA-256 64-character lowercase hexadecimal regex) and strictly positive byte size constraints.
+* Observation value integrity: enforcement that at least one of `numeric_value` or `text_value` is populated.
+* Encounter temporal order integrity: validation that `end_time >= start_time`.
+* ORM serialization parity: verifying `from_attributes=True` serialization from representative SQLAlchemy domain entities.
 * Declarative base export, MetaData collection, and table registration.
 * Entity mappings for 8 clinical domain tables + 1 explicit association table: `users`, `roles`, `user_roles`, `patients`, `encounters`, `observations`, `uploaded_assets`, `analysis_runs`, `audit_events`.
 * Primary keys (`Uuid`) and foreign key relationships with referential deletion policies (`RESTRICT` on clinical history, `SET NULL` on audit actors and asset links).
@@ -222,7 +238,7 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 ## 8. Operational Readiness vs. Clinical Readiness
 
 > **Important Boundary Notice:**<br/>
-> The local development server and automated tests verify **software engineering mechanics only** (HTTP lifecycle, routing, error envelopes, logging, and database session lifecycles). This does **not** constitute clinical validation, medical device certification, or production deployment readiness. External databases (Module 3), multi-agent pipelines (Module 11), and clinical safety controls (Module 13) are introduced in subsequent modules.
+> The local development server and automated tests verify **software engineering mechanics only** (HTTP lifecycle, routing, error envelopes, logging, database session lifecycles, and Pydantic validation contracts). This does **not** constitute clinical validation, medical device certification, or production deployment readiness. External databases (Module 3), multi-agent pipelines (Module 11), and clinical safety controls (Module 13) are introduced in subsequent modules.
 
 ---
 
@@ -245,16 +261,27 @@ Arogya-AI/
     │   ├── api/
     │   │   ├── __init__.py
     │   │   └── health.py# /health and /ready probe implementations
-    │   └── db/
-    │       ├── __init__.py  # Database package exports (engine, session, models)
-    │       ├── base.py      # SQLAlchemy 2.x declarative base and metadata
-    │       ├── models.py    # Initial healthcare domain entities & user_roles
-    │       └── session.py   # Engine, session factory, dependency, and connection check
+    │   ├── db/
+    │   │   ├── __init__.py  # Database package exports (engine, session, models)
+    │   │   ├── base.py      # SQLAlchemy 2.x declarative base and metadata
+    │   │   ├── models.py    # Initial healthcare domain entities & user_roles
+    │   │   └── session.py   # Engine, session factory, dependency, and connection check
+    │   └── schemas/     # Pydantic v2 API data contracts & serialization schemas
+    │       ├── __init__.py  # Schema package exports (32 symbols)
+    │       ├── common.py    # BaseSchema, ORMModel, PaginatedResponse, timezone validators
+    │       ├── user.py      # User and Role request/response contracts
+    │       ├── patient.py   # Pseudonymous Patient request/response contracts
+    │       ├── encounter.py # Clinical Encounter request/response contracts
+    │       ├── observation.py # Clinical Observation request/response contracts
+    │       ├── asset.py     # Uploaded asset metadata contracts
+    │       ├── analysis.py  # AnalysisRun creation and response contracts
+    │       └── audit.py     # Read-only audit event response and filter contracts
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
     │   ├── test_database.py # Database engine, session lifecycle, and probe tests
     │   ├── test_models.py   # Clinical domain entities & relationship tests
+    │   ├── test_schemas.py  # Pydantic contract validation & serialization tests
     │   ├── test_health.py
     │   ├── test_errors.py
     │   ├── test_openapi.py # OpenAPI schema & contract regression tests
@@ -271,8 +298,10 @@ Arogya-AI/
 * **Phase 3.1 (Completed):** PostgreSQL connection configuration, URI validation, credential masking, and environment safety controls.
 * **Phase 3.2 (Completed):** SQLAlchemy 2.0 declarative base, synchronous engine lifecycle, session dependency injection, and connection verification.
 * **Phase 3.3 (Completed):** Domain entities and relational data models (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
-* **Phase 3.4 (Next):** Pydantic API data contracts and serialization schemas.
-* **Phase 3.5 (Future):** Alembic migrations and database schema management.
+* **Phase 3.4 (Completed):** Pydantic API data contracts, validation rules, sensitive field shielding, and serialization schemas.
+* **Phase 3.5 (Next):** Alembic migrations, database schema revision tree, and initial clinical seed data.
+* **Phase 3.6 (Future):** Data access repositories and clinical domain service layer.
+* **Phase 3.7 (Future):** Database backup, recovery, and point-in-time disaster recovery verification.
 
 ---
 
