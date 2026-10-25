@@ -453,6 +453,48 @@ def test_service_transaction_rollback_boundary(service_session: Session) -> None
     assert user_service.get_user_by_username("tx_user") is None
 
 
+def test_service_does_not_prematurely_rollback_caller_transaction_on_handled_error(
+    service_session: Session,
+) -> None:
+    """Verify that domain services do NOT issue session.rollback() on domain errors.
+
+    The outer caller retains full ownership of the transaction and can catch domain
+    errors (such as duplicate MRN or validation errors) without having their active
+    transaction invalidated or aborted by the service layer.
+    """
+    clinical_service = ClinicalService(service_session)
+    user_service = UserService(service_session)
+
+    with service_session.begin():
+        # 1. Caller starts transaction and creates patient 1
+        p1 = clinical_service.create_patient(PatientCreate(mrn_pseudonym="SYNTH-TX-RETAIN-1"))
+        assert p1.id is not None
+
+        # 2. Service raises DuplicateEntityError because MRN already exists
+        with pytest.raises(DuplicateEntityError):
+            clinical_service.create_patient(PatientCreate(mrn_pseudonym="SYNTH-TX-RETAIN-1"))
+
+        # 3. CRITICAL PROOF: Because clinical_service did NOT call session.rollback(),
+        # the caller's transaction is still valid and can continue normally.
+        p2 = clinical_service.create_patient(PatientCreate(mrn_pseudonym="SYNTH-TX-RETAIN-2"))
+        assert p2.id is not None
+
+        user = user_service.create_user(
+            UserCreate(
+                username="tx_resilient_user",
+                email="resilient@hospital.org",
+                full_name="Resilient User",
+                password="ValidPassword123",
+            )
+        )
+        assert user.id is not None
+
+    # After the caller's transaction completes and commits, valid entities are persisted
+    assert clinical_service.get_patient_by_mrn("SYNTH-TX-RETAIN-1") is not None
+    assert clinical_service.get_patient_by_mrn("SYNTH-TX-RETAIN-2") is not None
+    assert user_service.get_user_by_username("tx_resilient_user") is not None
+
+
 def test_audit_service_sensitive_field_sanitization(service_session: Session) -> None:
     """Verify that credentials, passwords, and tokens are scrubbed from audit metadata."""
     audit_service = AuditService(service_session)

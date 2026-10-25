@@ -9,8 +9,8 @@ A modular, research-oriented healthcare intelligence and clinical decision-suppo
 
 ## 1. Project Status
 
-* **Current Stage:** Module 1 (Project Foundation & Architecture) — Foundation & Hygiene Phase.
-* **Implementation State:** Initial project repository layout and developer documentation only. **No application features, APIs, database tables, or machine learning models are implemented yet.**
+* **Current Stage:** Module 3 (Database Persistence & Relational Data Layer) — **Complete** (Phases 3.1–3.7).
+* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 32 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, and logical backup/restore tooling are implemented and verified with 146 automated tests. Module 4 (Frontend UI Shell & Navigation) is the next scheduled phase.
 
 ---
 
@@ -83,14 +83,26 @@ Detailed specifications governing system architecture, safety constraints, data 
 
 ## 6. Development Setup & Prerequisites
 
-Because Arogya AI is in the repository foundation phase, **the application cannot be run yet**. Application runtimes and dependency manifests (`package.json`, `pyproject.toml`) will be introduced in subsequent planned phases.
+The backend application runtime is configured with Python 3.14+ in the isolated `.venv` environment.
+
+### Quick Start & Verification
+```powershell
+# 1. Run full test suite (146 tests)
+.\.venv\Scripts\python.exe -m pytest
+
+# 2. Run backend development server
+.\scripts\run_backend.ps1
+
+# 3. Verify database connectivity & schema alignment
+.\.venv\Scripts\python.exe scripts/verify_database.py
+```
 
 ### Verified Prerequisites
 * **Git:** Version control installed.
-* **Python:** 3.11+ recommended (host currently has Python 3.14 installed; ML library compatibility will be verified during Module 2).
-* **Node.js:** Node 20+ LTS recommended (host currently has Node 24.18.0 installed).
-* **PostgreSQL:** Local PostgreSQL or Docker service (planned for Module 3).
-* **Docker:** Optional for containerized services.
+* **Python:** 3.11+ (Python 3.14.6 verified in project virtual environment).
+* **Node.js:** Node 20+ LTS recommended (host has Node 24.18.0 installed).
+* **PostgreSQL:** Local PostgreSQL service or container (for live database workflows).
+* **PostgreSQL Client Tools:** `pg_dump` and `pg_restore` (for logical backup and restore workflows).
 
 ---
 

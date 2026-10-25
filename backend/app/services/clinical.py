@@ -11,6 +11,7 @@ CONSISTENCY & INVARIANT RULES:
 4. Multimodal Analysis Integrity: Assets evaluated in an analysis run must belong to the encounter's patient.
 5. MRN Mapping: Maps 'mrn' / 'mrn_pseudonym' transparently to the underlying persistence model.
 6. Zero Clinical Diagnosis: Output containers and results reflect research evaluations, not certified medical conclusions.
+7. Transaction Ownership: The caller strictly owns transaction commit/rollback boundaries. ClinicalService never commits or rolls back independently.
 """
 
 from datetime import datetime

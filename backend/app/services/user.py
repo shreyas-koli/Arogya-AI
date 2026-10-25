@@ -3,6 +3,8 @@
 Module 3, Phase 3.6: Data Access Repositories & Clinical Domain Service Layer.
 Coordinates user account lifecycle, role authorization assignments, uniqueness
 invariant checks, and operational audit event logging.
+Transaction ownership strictly resides with the outer caller; UserService
+never commits or rolls back sessions independently.
 """
 
 from typing import Sequence

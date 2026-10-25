@@ -173,6 +173,9 @@ qdrant_storage/
 *.db-journal
 *.db-wal
 postgres_data/
+backups/
+*.dump
+*.sql.gz
 
 # ------------------------------------------------------------------------------
 # General Logs & Temporary Files

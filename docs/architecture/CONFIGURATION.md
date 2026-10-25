@@ -1,11 +1,11 @@
 # Arogya AI — Backend Configuration & Environment Validation
 
-> **Status Notice:** Updated as of Module 3 (Database Persistence & Data Layer), Phase 3.6.<br/>
-> This document specifies the validated configuration settings, environment variable bindings, type invariants, runtime hardening controls, database engine/session lifecycle mechanics, Alembic migration commands, synthetic development seed mechanisms, and data access repositories & domain services for Arogya AI.
+> **Status Notice:** Updated as of Module 3 (Database Persistence & Data Layer), Phase 3.7.<br/>
+> This document specifies the validated configuration settings, environment variable bindings, type invariants, runtime hardening controls, database engine/session lifecycle mechanics, Alembic migration commands, synthetic development seed mechanisms, data access repositories & domain services, and database verification/backup/recovery procedures for Arogya AI.
 >
 > **Scope Boundary:**
-> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, OpenAPI endpoints, synchronous PostgreSQL database engine/session infrastructure, Alembic schema migrations, synthetic development seed data, and data access repositories & domain services.
-> * **Placeholders & Deferred Settings:** Cryptographic secrets (Module 7) are validated placeholders that default to `None`. Database backup/recovery procedures (Phase 3.7) remain future phases.
+> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, OpenAPI endpoints, synchronous PostgreSQL database engine/session infrastructure, Alembic schema migrations, synthetic development seed data, data access repositories & domain services, database verification utility, and PostgreSQL backup/restore runbooks.
+> * **Placeholders & Deferred Settings:** Cryptographic secrets and application-level authentication/authorization (Module 4 / Module 7) remain validated placeholders that default to `None`. Physical database-level audit immutability triggers and multi-region disaster recovery replication remain deferred to later infrastructure phases.
 
 ---
 
@@ -234,7 +234,98 @@ with session.begin():
 
 ---
 
-## 7. Test Isolation & Settings Overriding
+## 7. Database Verification, Backup Strategy & Disaster Recovery Runbooks
+
+Module 3 Phase 3.7 establishes repeatable database verification, logical custom-format backup, and safe restore-testing tooling under `scripts/`.
+
+### 7.1 Database Verification Utility (`scripts/verify_database.py`)
+Performs read-only inspection of connectivity, server dialect and version, domain table completeness (via `Base.metadata.tables`), and current Alembic revision alignment without mutating, migrating, or seeding records.
+
+**Execution Commands:**
+```powershell
+# Human-readable diagnostics
+.\.venv\Scripts\python.exe scripts/verify_database.py
+
+# Machine-readable JSON output (for monitoring or CI pipelines)
+.\.venv\Scripts\python.exe scripts/verify_database.py --json
+```
+
+**Status & Exit Codes:**
+- `0 (EXIT_SUCCESS)`: Connection verified, all 9 domain tables present, Alembic head matched.
+- `1 (EXIT_CONNECTION_ERROR)`: Target database unreachable, timeout, or authentication failed.
+- `2 (EXIT_SCHEMA_MISSING)`: Database reachable, but one or more domain tables are missing.
+- `3 (EXIT_MIGRATION_MISMATCH)`: Tables exist, but current Alembic revision != migration head.
+- `4 (EXIT_CONFIG_ERROR)`: Database URL is missing or malformed.
+
+---
+
+### 7.2 PostgreSQL Backup Strategy (`scripts/backup_database.py` & `.ps1`)
+Creates logical PostgreSQL backups using PostgreSQL's supported `pg_dump` tool with custom archive format (`-F c`), capturing all tables, sequences, large objects, and schema metadata.
+
+**Execution Commands:**
+```powershell
+# Using Python directly
+.\.venv\Scripts\python.exe scripts/backup_database.py
+
+# Using PowerShell wrapper
+.\scripts\backup_database.ps1
+
+# Custom destination directory
+.\scripts\backup_database.ps1 -Destination "D:\Backups\Arogya"
+```
+
+**Operational & Security Rules:**
+1. **Timestamped, Non-Overwriting Filenames:** Backups are written to `backups/arogya_ai_backup_YYYYMMDD_HHMMSS.dump`. The script strictly refuses to overwrite existing backup archives.
+2. **Credential Protection:** Passwords are never passed via command-line arguments or logged. Authentication is managed via the `PGPASSWORD` subprocess environment variable or the platform PostgreSQL password file (`%APPDATA%\postgresql\pgpass.conf` on Windows; `~/.pgpass` on Linux).
+3. **Integrity Validation:** Validates both the `pg_dump` return code and verifies that the output file exists and is strictly non-empty (`> 0` bytes). Empty or failed dumps are automatically cleaned up.
+4. **Git Exclusion:** The `backups/` directory and `*.dump` files are ignored in `.gitignore` to prevent committing patient cohort data.
+5. **Notice on Exit Code:** A successful `pg_dump` exit code proves archive creation, not logical restore validity. Periodic restore testing is required.
+
+---
+
+### 7.3 Safe Restore & Recovery Procedure (`scripts/restore_database.py` & `.ps1`)
+Restores custom-format `.dump` archives using `pg_restore` into an **isolated, explicitly designated disposable restore-test database**.
+
+**Execution Commands:**
+```powershell
+# Test restore into disposable test database 'arogya_restore_test'
+.\.venv\Scripts\python.exe scripts/restore_database.py `
+    --backup-file "backups/arogya_ai_backup_20261025_120000.dump" `
+    --target-db "arogya_restore_test" `
+    --confirm-restore-target "arogya_restore_test"
+
+# Or using PowerShell wrapper with automated disposable cleanup
+.\scripts\restore_database.ps1 `
+    -BackupFile "backups/arogya_ai_backup_20261025_120000.dump" `
+    -TargetDb "arogya_restore_test" `
+    -ConfirmRestoreTarget "arogya_restore_test" `
+    -CleanupTarget `
+    -ConfirmCleanup "arogya_restore_test"
+```
+
+**Critical Safety Safeguards:**
+1. **Never Restore Over Application Database:** If `--target-db` matches the configured active application database name (`settings.database_url`), the script **immediately halts and refuses execution** (exit code 6: `SAFETY_REFUSED`).
+2. **Mandatory Confirmation Flag:** Requires `--confirm-restore-target <exact_target_name>` to prevent accidental typos.
+3. **Protected Keyword Guard:** Refuses targets containing `prod`, `production`, `live`, or `main`.
+4. **Post-Restore Schema Verification:** Connects to the restored test database and confirms all 9 domain tables exist and Alembic revision matches the expected migration head.
+5. **Disposable Cleanup:** The optional `--cleanup-target` parameter drops only the explicitly confirmed restore-test database.
+
+---
+
+### 7.4 Backup Retention & Development Disaster Recovery Policy
+* **Backup Storage Location:** `backups/` directory relative to repository root (excluded from Git).
+* **Development Frequency:** Recommended daily during active schema evolution, and always immediately before running database migrations (`alembic upgrade head`) or synthetic seed generation.
+* **Retention Policy:** Retain the last 7 daily development backups; manually prune archives older than 14 days. Do not automate background cron jobs in development.
+* **Encryption & PHI Sensitivity:** Dumps contain pseudonymized research records. Pseudonymization does not equal anonymization. Archives must be stored on encrypted volumes (BitLocker/LUKS) with restricted filesystem permissions.
+* **RPO & RTO Development Targets:**
+  * **RPO (Recovery Point Objective):** 24 hours (or time of last pre-migration backup) in development.
+  * **RTO (Recovery Time Objective):** < 30 minutes for a local single-node prototype rebuild.
+  * *Note:* These are development targets requiring periodic manual validation, not production SLA guarantees.
+* **Testing Scope Notice:** All backup/restore tests in CI/pytest use mock subprocess calls and in-memory SQLite instances to verify safety guards, credential masking, non-overwriting filenames, and table inspections. Live PostgreSQL backup and restore operations remain unverified until a dedicated PostgreSQL test container or host is configured.
+
+---
+
+## 8. Test Isolation & Settings Overriding
 
 To ensure tests remain isolated and deterministic without leaking state:
 
@@ -244,7 +335,7 @@ To ensure tests remain isolated and deterministic without leaking state:
 
 ---
 
-## 8. Deployment Preflight Checklist
+## 9. Deployment Preflight Checklist
 
 Before promoting any Arogya AI backend instance to staging or production:
 
@@ -253,4 +344,6 @@ Before promoting any Arogya AI backend instance to staging or production:
 - [ ] **`API_HOST`:** Ensure network interface bindings match orchestrator requirements (e.g., `0.0.0.0` inside container, loopback for local dev).
 - [ ] **`DOCS_URL` & `REDOC_URL`:** Evaluate whether external API documentation should be disabled (`none` or left empty).
 - [ ] **Secrets:** Ensure `.env` is uncommitted and protected with strict filesystem permissions.
+- [ ] **Database Preflight:** Run `scripts/verify_database.py` and confirm status `VERIFIED` (exit code 0).
+- [ ] **Pre-Migration Backup:** Execute `scripts/backup_database.py` before applying new Alembic revisions.
 - [ ] **Clinical Boundary Notice:** Confirm that operational test completion is not conflated with clinical decision-support certification.

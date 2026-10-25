@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.6: Data Access Repositories & Clinical Domain Service Layer.<br/>
-> Dedicated repositories (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent) and coordinated domain services (`ClinicalService`, `UserService`, `AuditService`) are established with cross-entity referential integrity, MRN mapping, caller-owned transaction boundaries, and credential-sanitized audit logging. Architecture details: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_DATA_CONTRACTS.md`](../docs/architecture/API_DATA_CONTRACTS.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.7: Database Verification and Backup Strategy (Module 3 Complete).<br/>
+> The database foundation includes PostgreSQL engine configuration, session lifecycle dependencies, 8 domain models + association table, 32 Pydantic data contracts, Alembic schema migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services (`ClinicalService`, `UserService`, `AuditService`), read-only database verification (`scripts/verify_database.py`), logical PostgreSQL backups (`scripts/backup_database.py`), and safe disaster recovery procedures (`scripts/restore_database.py`). Architecture details: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_DATA_CONTRACTS.md`](../docs/architecture/API_DATA_CONTRACTS.md).
 
 ---
 
@@ -279,9 +279,14 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 Arogya-AI/
 ├── pytest.ini           # Root pytest test runner configuration
 ├── scripts/
-│   ├── run_backend.ps1  # Local development server and test automation
-│   ├── seed_dev_data.py # Idempotent synthetic development seed data generator
-│   └── validate_foundation.ps1
+│   ├── backup_database.ps1    # PowerShell wrapper for PostgreSQL backup
+│   ├── backup_database.py     # Logical custom-format backup (pg_dump) with credential protection
+│   ├── restore_database.ps1   # PowerShell wrapper for restore & verification
+│   ├── restore_database.py    # Safe restore into disposable target (pg_restore)
+│   ├── run_backend.ps1        # Local development server and test automation
+│   ├── seed_dev_data.py       # Idempotent synthetic development seed data generator
+│   ├── validate_foundation.ps1
+│   └── verify_database.py     # Non-destructive database connectivity & schema verifier
 └── backend/
     ├── alembic.ini      # Alembic migration configuration
     ├── alembic/         # Alembic migration environment and versions
@@ -333,17 +338,18 @@ Arogya-AI/
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
-    │   ├── test_database.py     # Database engine, session lifecycle, and probe tests
-    │   ├── test_models.py       # Clinical domain entities & relationship tests
-    │   ├── test_schemas.py      # Pydantic contract validation & serialization tests
-    │   ├── test_migrations.py   # Alembic configuration & schema migration tests
-    │   ├── test_seed.py         # Synthetic development seed data tests
-    │   ├── test_repositories.py # Data access repository unit tests
-    │   ├── test_services.py     # Clinical domain services & consistency tests
+    │   ├── test_database.py               # Database engine, session lifecycle, and probe tests
+    │   ├── test_models.py                 # Clinical domain entities & relationship tests
+    │   ├── test_schemas.py                # Pydantic contract validation & serialization tests
+    │   ├── test_migrations.py             # Alembic configuration & schema migration tests
+    │   ├── test_seed.py                   # Synthetic development seed data tests
+    │   ├── test_repositories.py           # Data access repository unit tests
+    │   ├── test_services.py               # Clinical domain services & consistency tests
+    │   ├── test_verification_and_backup.py# Database verification, backup, & restore tests
     │   ├── test_health.py
     │   ├── test_errors.py
-    │   ├── test_openapi.py     # OpenAPI schema & contract regression tests
-    │   └── test_settings.py    # Settings validation & runtime hardening tests
+    │   ├── test_openapi.py                # OpenAPI schema & contract regression tests
+    │   └── test_settings.py               # Settings validation & runtime hardening tests
     ├── requirements.txt # Pinned core backend and testing dependencies
     └── README.md        # Backend developer guide and setup notes
 ```
@@ -359,7 +365,7 @@ Arogya-AI/
 * **Phase 3.4 (Completed):** Pydantic API data contracts, validation rules, sensitive field shielding, and serialization schemas.
 * **Phase 3.5 (Completed):** Alembic migrations, database schema revision tree (`98574e91500e`), offline PostgreSQL DDL generation, and synthetic development seed data generator.
 * **Phase 3.6 (Completed):** Data access repositories, clinical domain service layer, cross-entity consistency enforcement, MRN alias mapping, and credential-sanitized audit logging.
-* **Phase 3.7 (Next):** Database backup, recovery, and point-in-time disaster recovery verification.
+* **Phase 3.7 (Completed):** Database verification utility, logical custom-format PostgreSQL backups (`pg_dump`), safe restore procedures (`pg_restore`), disposable target safety guards, and operational recovery documentation. *(Module 3 Complete)*.
 
 ---
 

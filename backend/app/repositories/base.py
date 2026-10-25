@@ -7,8 +7,10 @@ session handling, parameter validation, and bounded pagination.
 TRANSACTION OWNERSHIP POLICY:
 Repositories encapsulate query logic and persistence state mutations (adding,
 updating, and querying entities). They DO NOT commit or roll back the session.
-Transaction boundaries (commit/rollback) belong to the calling domain service
-or the request-scoped session dependency lifecycle (get_db_session).
+Transaction boundaries (commit/rollback) belong strictly to the outer caller
+(such as the request-scoped session dependency lifecycle get_db_session, a background
+job, or an explicit caller with session.begin(): block). Neither repositories
+nor domain services commit or roll back transactions independently.
 """
 
 from typing import Generic, TypeVar
