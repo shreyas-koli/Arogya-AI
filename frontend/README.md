@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.1: Initialize Next.js Frontend with TypeScript.<br/>
-> Established Next.js App Router with TypeScript (strict mode), ESLint 9 flat configuration, Vanilla CSS design foundation, and accessible product landing page.
+> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.2: Design Tokens and Visual Foundation.<br/>
+> Established comprehensive clinical design tokens in Vanilla CSS, accessible styling primitives, high-contrast palette with light/dark support, responsive layout scales, and WCAG AA/AAA compliant typography.
 
 ---
 
@@ -47,7 +47,66 @@ All commands are executed from the `frontend/` directory:
 
 ---
 
-## 4. Environment Variables
+## 4. Design Tokens & Visual Foundation
+
+The design system communicates clinical clarity, scientific credibility, precision, and trust. Tokens are implemented entirely as standard CSS custom properties in [`frontend/app/globals.css`](app/globals.css) and consumed via CSS Modules.
+
+### Token Location & Structure
+
+All design tokens are defined on `:root` and `@media (prefers-color-scheme: dark)` in:
+```text
+frontend/app/globals.css
+```
+
+### Semantic Token Categories
+
+| Category | Token Prefix | Examples | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Colors (Brand)** | `--color-brand-` | `--color-brand-primary`, `--color-brand-subtle`, `--color-brand-border` | Clinical deep teal/cyan identity and interactive states. |
+| **Colors (Accent)** | `--color-accent-` | `--color-accent-primary`, `--color-accent-subtle` | Secondary medical blue/slate accent. |
+| **Colors (Surfaces)** | `--color-bg-` | `--color-bg-canvas`, `--color-bg-surface`, `--color-bg-surface-elevated` | Layered canvas, card, and modal surfaces. |
+| **Colors (Text)** | `--color-text-` | `--color-text-primary`, `--color-text-secondary`, `--color-text-muted` | High-contrast WCAG AAA/AA text hierarchy. |
+| **Colors (Status)** | `--color-{status}-` | `--color-success-fg`, `--color-warning-bg`, `--color-danger-border` | Status indicators (Success, Warning, Danger, Info). |
+| **Typography** | `--font-`, `--font-size-` | `--font-sans`, `--font-size-display`, `--font-size-body`, `--font-weight-bold` | Scalable type scale with fluid clamp headings. |
+| **Spacing** | `--space-` | `--space-1` (4px) to `--space-20` (80px), `--space-table-cell-y` | 4pt/8pt systematic grid for cards, forms, and dense data tables. |
+| **Borders & Radii** | `--border-`, `--radius-` | `--border-width-sm`, `--radius-sm` (6px), `--radius-lg` (12px), `--radius-full` | Restrained radii and border widths. |
+| **Elevation** | `--shadow-` | `--shadow-sm`, `--shadow-md`, `--shadow-lg` | Clean, subtle shadows without glowing artifacts. |
+| **Layout & Sizing** | `--layout-`, `--control-` | `--layout-max-width` (1120px), `--control-height-md` (40px) | Layout constraints, gutters, and dense row tokens. |
+| **Motion** | `--motion-` | `--motion-duration-fast`, `--motion-easing-default` | Respects `prefers-reduced-motion` unconditionally. |
+
+### How to Consume Design Tokens
+
+When styling components, import the component CSS module and reference CSS custom properties directly:
+
+```css
+/* Example Component CSS Module */
+.clinicalCard {
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-sm) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+}
+
+.criticalAlert {
+  background-color: var(--color-danger-bg);
+  border: var(--border-width-sm) solid var(--color-danger-border);
+  color: var(--color-danger-fg);
+}
+```
+
+### Guidelines for Future Components
+
+1. **No Hardcoded Values:** Do not introduce ad-hoc hex colors, arbitrary pixel paddings, or one-off margins. Always use `--color-*` and `--space-*` tokens.
+2. **Accessible Contrast:** Text must maintain at least 4.5:1 contrast against its background (WCAG AA) and 7:1 for headings/primary text (WCAG AAA).
+3. **Keyboard Focus:** Always preserve visible keyboard focus via `:focus-visible` using `--color-focus-ring`.
+4. **Reduced Motion:** Interactive transitions must use `--motion-duration-*` or be disabled under `@media (prefers-reduced-motion: reduce)`.
+5. **Dark Mode Coherence:** Use semantic color tokens (`--color-bg-surface`, `--color-text-primary`) rather than fixed white/black so the dark color scheme adapts automatically.
+
+---
+
+## 5. Environment Variables
 
 Frontend configuration is driven by environment variables using Next.js conventions:
 
@@ -63,7 +122,7 @@ Frontend configuration is driven by environment variables using Next.js conventi
 
 ---
 
-## 5. Directory Structure
+## 6. Directory Structure
 
 ```text
 frontend/
@@ -75,21 +134,22 @@ frontend/
 ├── package.json         # Pinned frontend dependencies and scripts
 ├── package-lock.json    # Deterministic npm lockfile
 ├── tsconfig.json        # TypeScript strict configuration
-├── README.md            # Frontend architecture & operator documentation
+├── README.md            # Frontend architecture & design token documentation
 ├── app/
 │   ├── favicon.ico      # Application favicon
-│   ├── globals.css      # Vanilla CSS design tokens & accessible reset
-│   ├── layout.tsx       # Root layout, font definitions, and metadata
-│   ├── page.tsx         # Initial product landing & verification page
-│   └── page.module.css  # Scoped CSS module for landing page layout
+│   ├── globals.css      # Vanilla CSS design tokens system & accessible reset
+│   ├── layout.tsx       # Root layout, skip-to-content, fonts, and metadata
+│   ├── page.tsx         # Product landing page demonstrating design tokens
+│   └── page.module.css  # Scoped CSS module consuming semantic tokens
 └── public/              # Static public assets (SVG icons, logos)
 ```
 
 ---
 
-## 6. Current Implementation Limitations & Roadmap
+## 7. Current Implementation Limitations & Roadmap
 
-* **Clinical Workflow Disconnection:** In Phase 4.1, the frontend serves as an isolated application shell and landing page. It is **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
-* **Component Library:** Design tokens, reusable UI primitives, and layout navigation (sidebar, breadcrumbs) are scheduled for Phase 4.2.
+* **Clinical Workflow Disconnection:** In Phase 4.2, the frontend serves as an isolated application shell and landing page. It is **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
+* **Component Library (Phase 4.3):** Shared button, input, badge, table, modal, and clinical card components will be established in subsequent phases.
+* **Navigation & Shell (Phase 4.4):** Sidebar navigation, breadcrumbs, and clinician workspace shells belong to later phases.
 * **Authentication & Authorization:** Client-side route guards and JWT/session management are deferred to subsequent phases.
 * **Research Disclaimer:** Arogya AI is an investigative research prototype. It does not provide certified medical diagnosis or autonomous clinical decision-making.

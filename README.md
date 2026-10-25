@@ -9,8 +9,8 @@ A modular, research-oriented healthcare intelligence and clinical decision-suppo
 
 ## 1. Project Status
 
-* **Current Stage:** Module 4 (Clinical Frontend Application Shell) — Phase 4.1: Initialize Next.js Frontend with TypeScript.
-* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 32 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, and logical backup/restore tooling are implemented and verified with 146 automated tests. Frontend foundation is initialized with Next.js 16 (App Router), TypeScript, ESLint 9, and accessible landing page.
+* **Current Stage:** Module 4 (Clinical Frontend Application Shell) — Phase 4.2: Design Tokens and Visual Foundation.
+* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 32 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, and logical backup/restore tooling are implemented and verified with 146 automated tests. Frontend foundation is established with Next.js 16 (App Router), TypeScript, ESLint 9, comprehensive Vanilla CSS design tokens, and accessible landing page.
 
 ---
 

@@ -8,33 +8,45 @@ export default function Home() {
         <div className={styles.headerInner}>
           <div className={styles.brandLink}>
             <span className={styles.brandIcon} aria-hidden="true">
-              +
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 4v16m-8-8h16" />
+              </svg>
             </span>
             <span>Arogya AI</span>
           </div>
+
           <div
             className={styles.stageBadge}
             role="status"
             aria-label="Current implementation stage"
           >
             <span className={styles.stageDot} aria-hidden="true" />
-            <span>Module 4: Frontend Shell</span>
+            <span>Module 4: Design Tokens & Visual Foundation</span>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className={styles.main}>
+      <main id="main-content" className={styles.main}>
         {/* Hero Section */}
         <section className={styles.hero} aria-labelledby="hero-title">
           <h1 id="hero-title" className={styles.title}>
-            Clinical Intelligence &{" "}
-            <span className={styles.titleGradient}>Decision Support</span>
+            Clinical Intelligence &amp;{" "}
+            <span className={styles.titleAccent}>Decision Support</span>
           </h1>
           <p className={styles.subtitle}>
             A modular healthcare intelligence and clinical decision-support research
-            prototype investigating multimodal context, diagnostic assistance, and
-            structured evidence synthesis for clinical research.
+            prototype investigating multimodal patient context, diagnostic assistance,
+            and structured evidence synthesis for clinical research.
           </p>
         </section>
 
@@ -62,7 +74,7 @@ export default function Home() {
           </svg>
           <div className={styles.disclaimerBody}>
             <h2 id="disclaimer-title" className={styles.disclaimerTitle}>
-              Research Prototype & Human Review Notice
+              Research Prototype &amp; Human Review Notice
             </h2>
             <p className={styles.disclaimerText}>
               Arogya AI is an academic and investigative research prototype under active
@@ -75,7 +87,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Architectural Pillars Section */}
+        {/* Architectural Research Directions Section */}
         <section aria-labelledby="pillars-heading">
           <div className={styles.sectionHeading}>
             <h2 id="pillars-heading" className={styles.sectionTitle}>
@@ -164,14 +176,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Verified Technical Foundation Specification */}
+        {/* Technical Foundation & Semantic Token Primitives Showcase */}
         <section className={styles.specCard} aria-labelledby="foundation-heading">
-          <h2 id="foundation-heading" className={styles.sectionTitle}>
-            Technical Foundation Status
-          </h2>
-          <p className={styles.sectionSubtitle}>
-            Verified platform architecture components established in Modules 1–4.
-          </p>
+          <div className={styles.specHeader}>
+            <div>
+              <h2 id="foundation-heading" className={styles.sectionTitle}>
+                Technical Foundation &amp; Design System
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Verified monorepo architecture and semantic design token primitives.
+              </p>
+            </div>
+            <div className={styles.statusTags}>
+              <span className={styles.badgeSuccess}>Tokens Verified</span>
+              <span className={styles.badgeInfo}>Phase 4.2</span>
+            </div>
+          </div>
 
           <div className={styles.specGrid}>
             <div className={styles.specItem}>
@@ -183,12 +203,12 @@ export default function Home() {
               <span className={styles.specValue}>Next.js 16 (App Router)</span>
             </div>
             <div className={styles.specItem}>
-              <span className={styles.specLabel}>Language</span>
+              <span className={styles.specLabel}>Type Safety</span>
               <span className={styles.specValue}>TypeScript (Strict Mode)</span>
             </div>
             <div className={styles.specItem}>
-              <span className={styles.specLabel}>Styling</span>
-              <span className={styles.specValue}>Vanilla CSS Tokens</span>
+              <span className={styles.specLabel}>Design System</span>
+              <span className={styles.specValue}>Semantic CSS Tokens</span>
             </div>
           </div>
         </section>
@@ -198,7 +218,7 @@ export default function Home() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <p className={styles.footerText}>
-            Arogya AI &copy; 2026 — Clinical Multimodal Intelligence & Decision-Support
+            Arogya AI &copy; 2026 — Clinical Multimodal Intelligence &amp; Decision-Support
             Prototype.
           </p>
           <p className={styles.footerNotice}>
