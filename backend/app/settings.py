@@ -5,6 +5,7 @@ Provides type-safe, validated environment settings using pydantic-settings.
 
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -68,15 +69,29 @@ class Settings(BaseSettings):
         description="Path to ReDoc documentation route, or None to disable",
     )
 
-    # Persistence & Security Placeholders (Deferred to Modules 3 & 7)
+    # Persistence & Security Settings (Module 3 & Module 7)
     database_url: str | None = Field(
         default=None,
-        description="PostgreSQL connection string (planned in Module 3)",
+        description="PostgreSQL database connection URL (e.g. postgresql+psycopg://user:password@localhost:5432/arogya_ai)",
     )
     secret_key: SecretStr | None = Field(
         default=None,
         description="Cryptographic secret key for session/token verification (Module 7)",
     )
+
+    @property
+    def masked_database_url(self) -> str | None:
+        """Return a sanitized version of the database URL with user credentials masked."""
+        if not self.database_url:
+            return None
+        parsed = urlsplit(self.database_url)
+        if parsed.password:
+            user = parsed.username or ""
+            host = parsed.hostname or ""
+            port_str = f":{parsed.port}" if parsed.port else ""
+            sanitized_netloc = f"{user}:***@{host}{port_str}" if user else f"***@{host}{port_str}"
+            return urlunsplit((parsed.scheme, sanitized_netloc, parsed.path, parsed.query, parsed.fragment))
+        return self.database_url
 
     @field_validator("app_name")
     @classmethod
@@ -152,13 +167,37 @@ class Settings(BaseSettings):
 
     @field_validator("database_url", mode="before")
     @classmethod
-    def normalize_database_url(cls, v: object) -> str | None:
-        """Convert empty or whitespace-only database connection strings to None."""
+    def validate_database_url(cls, v: object) -> str | None:
+        """Validate and normalize PostgreSQL connection URL.
+
+        Converts empty string, whitespace, 'none', 'null', or 'disabled' to None.
+        Enforces that any configured URL uses a supported PostgreSQL scheme.
+        Credentials are never reflected in validation error messages.
+        """
         if v is None:
             return None
         if isinstance(v, str):
             cleaned = v.strip()
-            return cleaned if cleaned else None
+            if not cleaned or cleaned.lower() in {"none", "null", "disabled"}:
+                return None
+            parsed = urlsplit(cleaned)
+            scheme = parsed.scheme.lower()
+            allowed_schemes = {
+                "postgresql",
+                "postgres",
+                "postgresql+psycopg",
+                "postgresql+psycopg2",
+                "postgresql+asyncpg",
+            }
+            if scheme not in allowed_schemes:
+                raise ValueError(
+                    f"database_url must use a PostgreSQL scheme (e.g. 'postgresql://' or 'postgresql+psycopg://'); got scheme '{scheme}'"
+                )
+            if not parsed.netloc and not parsed.path.lstrip("/"):
+                raise ValueError(
+                    "database_url is malformed; must include a host and database name"
+                )
+            return cleaned
         return v
 
     @field_validator("secret_key", mode="before")

@@ -150,3 +150,105 @@ def test_root_api_prefix_mounting() -> None:
     ready_resp = client.get("/ready")
     assert ready_resp.status_code == 200
     assert ready_resp.json()["status"] == "ready"
+
+
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "postgresql+psycopg://user:pass@localhost:5432/arogya_ai",
+        "postgresql://user:pass@localhost:5432/arogya_ai",
+        "postgresql+psycopg2://user:pass@localhost:5432/arogya_ai",
+        "postgresql+asyncpg://user:pass@localhost:5432/arogya_ai",
+        "postgres://user:pass@localhost/arogya_ai",
+        "postgresql://localhost/arogya_ai",
+    ],
+)
+def test_database_url_valid_schemes_accepted(valid_url: str) -> None:
+    """Supported PostgreSQL connection URL formats are accepted without error."""
+    settings = Settings(database_url=valid_url)
+    assert settings.database_url == valid_url
+
+
+@pytest.mark.parametrize(
+    "empty_val",
+    ["", "   ", "none", "null", "disabled", None],
+)
+def test_database_url_empty_values_normalized_to_none(empty_val: str | None) -> None:
+    """Empty, whitespace-only, or disabling database URLs normalize cleanly to None."""
+    settings = Settings(database_url=empty_val)
+    assert settings.database_url is None
+    assert settings.masked_database_url is None
+
+
+@pytest.mark.parametrize(
+    ("invalid_url", "expected_match"),
+    [
+        ("mysql://user:pass@localhost:3306/db", "must use a PostgreSQL scheme"),
+        ("sqlite:///local.db", "must use a PostgreSQL scheme"),
+        ("mongodb://localhost:27017/db", "must use a PostgreSQL scheme"),
+        ("not_a_valid_url", "must use a PostgreSQL scheme"),
+        ("postgresql://", "must include a host and database name"),
+    ],
+)
+def test_database_url_invalid_schemes_rejected(invalid_url: str, expected_match: str) -> None:
+    """Non-PostgreSQL schemes or malformed URLs raise ValidationError with clear messages."""
+    with pytest.raises(ValidationError, match=expected_match):
+        Settings(database_url=invalid_url)
+
+
+def test_database_credentials_not_exposed_in_validation_error() -> None:
+    """Validation errors for rejected schemes never echo submitted usernames or passwords."""
+    sensitive_user = "secret_clinical_admin"
+    sensitive_pass = "SuperSecretDbPassword#99"
+    bad_url = f"mysql://{sensitive_user}:{sensitive_pass}@localhost:3306/arogya_db"
+
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(database_url=bad_url)
+
+    error_text = str(exc_info.value)
+    assert sensitive_user not in error_text
+    assert sensitive_pass not in error_text
+    assert "mysql" in error_text
+
+
+def test_masked_database_url_redacts_credentials() -> None:
+    """The masked_database_url property replaces passwords with asterisks."""
+    full_url = "postgresql+psycopg://clinician:SuperSecretPwd123@db.hospital.local:5432/arogya_prod"
+    settings = Settings(database_url=full_url)
+
+    masked = settings.masked_database_url
+    assert masked is not None
+    assert "SuperSecretPwd123" not in masked
+    assert "clinician:***@db.hospital.local:5432/arogya_prod" in masked
+    assert masked == "postgresql+psycopg://clinician:***@db.hospital.local:5432/arogya_prod"
+
+    # URL without password
+    no_pass_url = "postgresql://localhost:5432/arogya_ai"
+    settings_no_pass = Settings(database_url=no_pass_url)
+    assert settings_no_pass.masked_database_url == no_pass_url
+
+    # None database URL
+    settings_none = Settings(database_url=None)
+    assert settings_none.masked_database_url is None
+
+
+def test_app_creation_with_valid_database_url_does_not_connect() -> None:
+    """Configuring a database URL does not initiate a connection on import or app creation."""
+    # Use TEST-NET-1 documentation IP (RFC 5737) to guarantee any real connection attempt would fail/hang
+    unreachable_url = "postgresql+psycopg://user:pass@192.0.2.1:5432/arogya_test"
+    settings = Settings(database_url=unreachable_url)
+
+    # App instantiation must succeed immediately without attempting a socket connection
+    app = create_app(settings)
+    client = TestClient(app)
+
+    # Health probe succeeds
+    health_resp = client.get("/api/v1/health")
+    assert health_resp.status_code == 200
+    assert health_resp.json()["status"] == "ok"
+
+    # Readiness probe succeeds without attempting connection
+    ready_resp = client.get("/api/v1/ready")
+    assert ready_resp.status_code == 200
+    assert ready_resp.json()["status"] == "ready"
+    assert ready_resp.json()["checks"]["database"]["status"] == "unconfigured"

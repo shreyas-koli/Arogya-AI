@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 2 (Backend Platform) — Phase 2.7: Backend Configuration, Environment Validation & Runtime Hardening.<br/>
-> Validated settings management, environment normalization, runtime safety invariants, OpenAPI documentation controls, and configuration regression tests (`test_settings.py`) are established. Full specifications: [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md) and [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.1: PostgreSQL Connection Configuration & Safe Local Environment Settings.<br/>
+> PostgreSQL connection URL validation, environment safety controls, and driver conventions (`postgresql+psycopg://`) are established. Full specifications: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
 
 ---
 
@@ -199,8 +199,9 @@ Arogya-AI/
 
 ## 9. Roadmap Status & Deferred Features
 
-* **Phase 2.7 (Completed):** Backend configuration, environment validation, runtime hardening, and Settings regression tests (`test_settings.py`). **Module 2 is now complete.**
-* **Module 3 (Next):** Database persistence, PostgreSQL schemas, and Alembic migrations.
+* **Module 2 (Completed):** Backend platform, application factory, health probes, error envelopes, logging, contract tests, and runtime hardening.
+* **Phase 3.1 (Completed):** PostgreSQL connection configuration, URI validation, credential masking, and environment safety controls.
+* **Phase 3.2 (Next):** SQLAlchemy 2.0 declarative base, engine lifecycle, and session management.
 
 ---
 

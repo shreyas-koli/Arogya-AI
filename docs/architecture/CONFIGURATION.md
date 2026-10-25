@@ -39,7 +39,7 @@ Configuration in Arogya AI is managed using **`pydantic-settings`** ([`backend/a
 | `openapi_url` | `OPENAPI_URL` | `str | None` | `"/openapi.json"` | No | Route path for OpenAPI 3.1 JSON schema. Set to `none`, `disabled`, or `""` to disable. |
 | `docs_url` | `DOCS_URL` | `str | None` | `"/docs"` | No | Route path for Swagger UI. Set to `none`, `disabled`, or `""` to disable. |
 | `redoc_url` | `REDOC_URL` | `str | None` | `"/redoc"` | No | Route path for ReDoc documentation. Set to `none`, `disabled`, or `""` to disable. |
-| `database_url` | `DATABASE_URL` | `str | None` | `None` | No | PostgreSQL connection URI. Deferred to Module 3; empty strings normalize to `None`. |
+| `database_url` | `DATABASE_URL` | `str | None` | `None` | No | PostgreSQL connection URI (e.g. `postgresql+psycopg://USER:PASSWORD@localhost:5432/arogya_ai`). Enforces PostgreSQL schemes (`postgresql`, `postgres`, `postgresql+psycopg`, `postgresql+psycopg2`, `postgresql+asyncpg`). Rejects non-PostgreSQL schemes. Empty strings and disabling tokens (`'none'`, `'null'`, `'disabled'`) normalize to `None`. Credentials masked via `masked_database_url`. |
 | `secret_key` | `SECRET_KEY` | `SecretStr | None` | `None` | No | Cryptographic secret for session signing. Deferred to Module 7; empty strings normalize to `None`. |
 
 ---
@@ -81,6 +81,28 @@ In Phase 2.6, documentation endpoints (`/openapi.json`, `/docs`, `/redoc`) were 
 In development templates (`.env.example`), variables such as `DATABASE_URL=` and `SECRET_KEY=` are left unpopulated:
 * Empty or whitespace-only values are automatically normalized to `None` rather than empty strings or empty `SecretStr("")`.
 * No placeholder credentials, default passwords, or fake API keys exist in the repository.
+
+### PostgreSQL Connection Configuration & Local Environment Safety (Module 3)
+* **Purpose of `DATABASE_URL`:** Configures the primary relational database connection for clinical entity persistence, audit logs, and metadata storage (Module 3).
+* **Driver Strategy & Format:**
+  * Selected modern driver strategy: **Psycopg 3** with SQLAlchemy 2.0.
+  * Standard connection URI: `postgresql+psycopg://USER:PASSWORD@HOST:PORT/DBNAME`
+  * Also compatible with: `postgresql://`, `postgres://`, `postgresql+psycopg2://`, and `postgresql+asyncpg://`.
+* **Validation & Credential Masking:**
+  * Non-PostgreSQL schemes (such as `mysql://` or `sqlite://`) are rejected at startup with a clear validation error.
+  * Validation error messages strictly avoid echoing submitted usernames, passwords, or hosts.
+  * The `Settings.masked_database_url` property provides a sanitized representation (`postgresql+psycopg://user:***@host:port/dbname`) suitable for observability and diagnostics without exposing credentials.
+* **Valid Configuration vs. Live Database Connectivity:**
+  * **Valid Configuration:** Establishes that the URI format is syntactically sound, targets a supported PostgreSQL scheme, and provides required components. Phase 3.1 validates this configuration offline without requiring a live PostgreSQL instance.
+  * **Live Database Connectivity:** Requires an active PostgreSQL service, valid authentication credentials, network reachability, and an existing target database. Engine/session management and live connection testing are introduced in Phase 3.2.
+* **Local Connectivity Verification:**
+  * When a local PostgreSQL instance is installed, reachability can be checked without modifying data:
+    ```powershell
+    # Check PostgreSQL daemon readiness on port 5432
+    pg_isready -h localhost -p 5432
+    ```
+* **Import & Factory Safety:**
+  * Importing [`backend/app/main.py`](../../backend/app/main.py) or calling `create_app()` **does not initiate database connections**. Application startup remains deterministic and decoupled from database uptime during unit testing.
 
 ---
 
