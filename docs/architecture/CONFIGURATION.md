@@ -1,11 +1,11 @@
 # Arogya AI — Backend Configuration & Environment Validation
 
-> **Status Notice:** Implemented as of Module 2 (Backend Platform), Phase 2.7.<br/>
-> This document specifies the validated configuration settings, environment variable bindings, type invariants, and runtime hardening controls for Arogya AI.
+> **Status Notice:** Updated as of Module 3 (Database Persistence & Data Layer), Phase 3.2.<br/>
+> This document specifies the validated configuration settings, environment variable bindings, type invariants, runtime hardening controls, and database engine/session lifecycle mechanics for Arogya AI.
 >
 > **Scope Boundary:**
-> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, and OpenAPI/interactive documentation endpoints.
-> * **Placeholders & Deferred Settings:** Database connection strings (Module 3) and cryptographic secrets (Module 7) are validated placeholders that default to `None`. They do not connect to external systems or activate services at this phase.
+> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, OpenAPI endpoints, and synchronous PostgreSQL database engine/session infrastructure.
+> * **Placeholders & Deferred Settings:** Cryptographic secrets (Module 7) are validated placeholders that default to `None`. Domain entities (Phase 3.3) and Alembic migrations (Phase 3.5) remain future phases.
 
 ---
 
@@ -82,27 +82,49 @@ In development templates (`.env.example`), variables such as `DATABASE_URL=` and
 * Empty or whitespace-only values are automatically normalized to `None` rather than empty strings or empty `SecretStr("")`.
 * No placeholder credentials, default passwords, or fake API keys exist in the repository.
 
-### PostgreSQL Connection Configuration & Local Environment Safety (Module 3)
+### PostgreSQL Connection Configuration, Engine & Session Lifecycle (Module 3)
 * **Purpose of `DATABASE_URL`:** Configures the primary relational database connection for clinical entity persistence, audit logs, and metadata storage (Module 3).
 * **Driver Strategy & Format:**
-  * Selected modern driver strategy: **Psycopg 3** with SQLAlchemy 2.0.
-  * Standard connection URI: `postgresql+psycopg://USER:PASSWORD@HOST:PORT/DBNAME`
-  * Also compatible with: `postgresql://`, `postgres://`, `postgresql+psycopg2://`, and `postgresql+asyncpg://`.
-* **Validation & Credential Masking:**
-  * Non-PostgreSQL schemes (such as `mysql://` or `sqlite://`) are rejected at startup with a clear validation error.
-  * Validation error messages strictly avoid echoing submitted usernames, passwords, or hosts.
-  * The `Settings.masked_database_url` property provides a sanitized representation (`postgresql+psycopg://user:***@host:port/dbname`) suitable for observability and diagnostics without exposing credentials.
-* **Valid Configuration vs. Live Database Connectivity:**
-  * **Valid Configuration:** Establishes that the URI format is syntactically sound, targets a supported PostgreSQL scheme, and provides required components. Phase 3.1 validates this configuration offline without requiring a live PostgreSQL instance.
-  * **Live Database Connectivity:** Requires an active PostgreSQL service, valid authentication credentials, network reachability, and an existing target database. Engine/session management and live connection testing are introduced in Phase 3.2.
+  * Selected modern driver strategy: **Psycopg 3** with synchronous SQLAlchemy 2.0.
+  * Standard connection URI: `postgresql+psycopg://USER:PASSWORD@HOST:PORT/DBNAME`.
+  * **Driver Scheme Normalization (`normalize_engine_url`):**
+    * Legacy `postgres://` and generic `postgresql://` URIs are safely and explicitly normalized to `postgresql+psycopg://`.
+    * Incompatible schemes fail fast with clear exceptions: `postgresql+asyncpg://` is rejected as incompatible with synchronous engines, and `postgresql+psycopg2://` is rejected because the project standardizes on Psycopg 3.
+* **Synchronous Engine Construction (`backend/app/db/session.py`):**
+  * `create_db_engine()` constructs a SQLAlchemy 2.x engine with production-ready connection pool settings:
+    * `pool_pre_ping=True` (verifies connection liveness prior to checkout).
+    * `pool_size=5` (baseline pool connections).
+    * `max_overflow=10` (surge connections under load).
+    * `pool_timeout=30.0` (seconds to wait before timeout on exhausted pool).
+    * `pool_recycle=1800` (recycles connections after 30 minutes to prevent stale socket drops).
+    * `connect_timeout=10` (bounded network connect timeout passed to driver).
+  * Connections are acquired lazily on first query execution or pool checkout; **no network connection is established on engine instantiation**.
+  * Process-wide singleton caching is managed via `get_engine()`, and test state reset is supported via `dispose_engine()`.
+* **Session Lifecycle & FastAPI Dependency Injection (`get_db_session`):**
+  * Sessions are created via `sessionmaker` (`autoflush=False`, `expire_on_commit=False`).
+  * Yielded to FastAPI route handlers via standard dependency injection.
+  * Wrapped in `try...finally`:
+    * Unhandled exceptions trigger `session.rollback()`.
+    * Session closure (`session.close()`) is deterministic and guaranteed across all execution paths.
+    * Sessions are strictly request-scoped and never shared across concurrent requests.
+* **Connection Verification (`check_database_connection`):**
+  * Runs a lightweight `SELECT 1` query using an acquired connection context.
+  * Translates failures to `DatabaseConnectionError` while preserving internal diagnostic causes.
+  * **Zero Credential Exposure:** Error text and logs never echo submitted passwords or raw connection strings.
+* **Testing Strategy (SQLite In-Memory vs. PostgreSQL Production):**
+  * Offline backend unit tests use in-memory SQLite engines (`sqlite:///:memory:`) with `StaticPool` to verify session lifecycles, transaction rollbacks, and FastAPI route dependency injection without requiring live database services.
+  * **Important Notice:** SQLite passes **do not establish PostgreSQL production compatibility**. SQLite lacks PostgreSQL data types (`UUID`, `JSONB`, `ARRAY`), PostgreSQL concurrency semantics, and transactional DDL behavior.
+* **Application Startup Rules:**
+  * Application startup (`create_app()`) strictly **must not** run `Base.metadata.create_all()` or Alembic migrations automatically. Automatic DDL on startup creates severe concurrency race conditions in clustered environments and risks unexpected schema mutations.
+  * Schema migrations are managed exclusively via Alembic starting in Phase 3.5.
+* **Import & Factory Safety:**
+  * Importing [`backend/app/main.py`](../../backend/app/main.py), [`backend/app/db/session.py`](../../backend/app/db/session.py), or calling `create_app()` **does not initiate database connections**. Application startup remains deterministic and decoupled from database uptime during unit testing.
 * **Local Connectivity Verification:**
-  * When a local PostgreSQL instance is installed, reachability can be checked without modifying data:
+  * When a local PostgreSQL instance is installed, daemon reachability can be checked without modifying data:
     ```powershell
     # Check PostgreSQL daemon readiness on port 5432
     pg_isready -h localhost -p 5432
     ```
-* **Import & Factory Safety:**
-  * Importing [`backend/app/main.py`](../../backend/app/main.py) or calling `create_app()` **does not initiate database connections**. Application startup remains deterministic and decoupled from database uptime during unit testing.
 
 ---
 

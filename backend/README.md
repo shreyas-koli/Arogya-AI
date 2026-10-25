@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.1: PostgreSQL Connection Configuration & Safe Local Environment Settings.<br/>
-> PostgreSQL connection URL validation, environment safety controls, and driver conventions (`postgresql+psycopg://`) are established. Full specifications: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.2: SQLAlchemy Base, Session Lifecycle & Connection Handling.<br/>
+> Synchronous SQLAlchemy 2.x engine construction, declarative base, session lifecycle dependency injection, and connection verification are established with Psycopg 3. Full specifications: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_CONVENTIONS.md`](../docs/architecture/API_CONVENTIONS.md).
 
 ---
 
@@ -17,6 +17,8 @@ This directory contains the Python backend service, REST API routers, domain log
   * `pydantic-settings>=2.6.0,<3.0.0`
   * `pytest>=8.0.0,<10.0.0`
   * `httpx>=0.27.0,<1.0.0`
+  * `sqlalchemy>=2.0.0,<3.0.0`
+  * `psycopg[binary]>=3.2.0,<4.0.0`
 
 ### Installing Dependencies into `.venv`
 ```powershell
@@ -127,7 +129,41 @@ Application logging is configured via standard Python `logging` (`backend/app/lo
 
 ---
 
-## 6. Running Backend Tests
+---
+
+## 6. Database Persistence, Engine Lifecycle & Session Management
+
+As of Module 3, Phase 3.2, database persistence infrastructure is established under `backend/app/db/`:
+
+### Architecture & Components
+* **Declarative Base (`backend/app/db/base.py`):**
+  * Defines SQLAlchemy 2.x `Base` (`DeclarativeBase`) and exposes `metadata`.
+  * In strict compliance with roadmap sequencing, **no entity models exist in Phase 3.2**; clinical domain entities are reserved for Phase 3.3.
+* **Synchronous Engine (`create_db_engine`):**
+  * Configures connection pooling defaults: `pool_pre_ping=True`, `pool_size=5`, `max_overflow=10`, `pool_timeout=30.0`, `pool_recycle=1800`, and a bounded driver connection timeout (`connect_timeout=10`).
+  * Lazily initializes connections; engine construction or application factory startup **never initiates an immediate network connection**.
+  * Caches a process-level engine singleton (`get_engine`) and supports clean teardown (`dispose_engine`).
+* **Session Lifecycle (`get_db_session`):**
+  * Provides a FastAPI dependency yielding an isolated `Session` per HTTP request.
+  * Ensures deterministic cleanup via `try...finally`: commits are handled explicitly by business handlers, unhandled exceptions trigger `session.rollback()`, and `session.close()` is guaranteed upon request exit.
+  * Sessions are strictly request-scoped and never shared across concurrent requests.
+* **Connection Verification (`check_database_connection`):**
+  * Performs a lightweight probe query (`SELECT 1`) to test live connectivity.
+  * Releases acquired connections back to the pool immediately.
+  * Catches driver failures and raises `DatabaseConnectionError` while preserving the underlying cause for debugging; **connection credentials and passwords are never exposed in error text or logs**.
+
+### Safe Local Development & Startup Rules
+* **No Startup Migrations or Table Creation:** Application startup (`create_app()`) strictly **must not** run `Base.metadata.create_all()` or Alembic migrations automatically. Automatic DDL on startup creates operational race conditions in clustered deployments and risks silent schema desynchronization.
+* **Schema Evolution:** Managed explicitly via Alembic migrations starting in Phase 3.5.
+
+### Testing Strategy: SQLite In-Memory vs. PostgreSQL
+* **Isolated Unit Testing:** Backend unit tests use in-memory SQLite engines (`sqlite:///:memory:`) with `StaticPool` to verify dialect-independent session mechanics, rollback behavior, and FastAPI dependency wiring without external infrastructure.
+* **PostgreSQL Incompatibility Notice:** **SQLite test passes do NOT establish PostgreSQL production compatibility.** SQLite lacks PostgreSQL-specific types (`UUID`, `JSONB`, `ARRAY`), specific dialect constraints, transactional DDL semantics, and connection concurrency characteristics.
+* **PostgreSQL Integration Testing:** Requires a dedicated PostgreSQL 18 instance with application credentials configured in `.env`. Integration testing against live databases remains decoupled from local unit test runs.
+
+---
+
+## 7. Running Backend Tests
 
 Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and shared fixtures in [`backend/tests/conftest.py`](tests/conftest.py):
 
@@ -141,7 +177,19 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+### Running Database Unit Tests Exclusively
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_database.py -v
+```
+
 ### Test Scope & Coverage:
+* Declarative base export, MetaData collection, and entity isolation.
+* Engine construction laziness, driver scheme validation, and URL normalization (`postgresql+psycopg://`).
+* Rejection of incompatible asynchronous (`asyncpg`) and legacy (`psycopg2`) drivers.
+* Engine singleton caching and deterministic teardown (`dispose_engine`).
+* Session query execution on dialect-independent test engines.
+* Session dependency lifecycle: deterministic closure, automatic rollback on exception, and FastAPI dependency injection.
+* Connection verification probe (`SELECT 1`), failure handling, and credential masking.
 * Liveness (`/health`) and readiness (`/ready`) response contracts.
 * Error envelope formatting across 404, 422, and 500 status codes.
 * Field location extraction without echoing sensitive input values.
@@ -158,14 +206,14 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 
 ---
 
-## 7. Operational Readiness vs. Clinical Readiness
+## 8. Operational Readiness vs. Clinical Readiness
 
 > **Important Boundary Notice:**<br/>
-> The local development server and automated tests verify **software engineering mechanics only** (HTTP lifecycle, routing, error envelopes, and logging). This does **not** constitute clinical validation, medical device certification, or production deployment readiness. External databases (Module 3), multi-agent pipelines (Module 11), and clinical safety controls (Module 13) are introduced in subsequent modules.
+> The local development server and automated tests verify **software engineering mechanics only** (HTTP lifecycle, routing, error envelopes, logging, and database session lifecycles). This does **not** constitute clinical validation, medical device certification, or production deployment readiness. External databases (Module 3), multi-agent pipelines (Module 11), and clinical safety controls (Module 13) are introduced in subsequent modules.
 
 ---
 
-## 8. Directory Layout
+## 9. Directory Layout
 
 ```text
 Arogya-AI/
@@ -181,12 +229,17 @@ Arogya-AI/
     │   ├── errors.py    # Standard error envelope and exception handlers
     │   ├── logging.py   # Structured JSON logging and contextvar tracking
     │   ├── middleware.py# RequestContextMiddleware for X-Request-ID tracing
-    │   └── api/
-    │       ├── __init__.py
-    │       └── health.py# /health and /ready probe implementations
+    │   ├── api/
+    │   │   ├── __init__.py
+    │   │   └── health.py# /health and /ready probe implementations
+    │   └── db/
+    │       ├── __init__.py  # Database package exports
+    │       ├── base.py      # SQLAlchemy 2.x declarative base and metadata
+    │       └── session.py   # Engine, session factory, dependency, and connection check
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
+    │   ├── test_database.py # Database engine, session lifecycle, and probe tests
     │   ├── test_health.py
     │   ├── test_errors.py
     │   ├── test_openapi.py # OpenAPI schema & contract regression tests
@@ -197,15 +250,17 @@ Arogya-AI/
 
 ---
 
-## 9. Roadmap Status & Deferred Features
+## 10. Roadmap Status & Deferred Features
 
 * **Module 2 (Completed):** Backend platform, application factory, health probes, error envelopes, logging, contract tests, and runtime hardening.
 * **Phase 3.1 (Completed):** PostgreSQL connection configuration, URI validation, credential masking, and environment safety controls.
-* **Phase 3.2 (Next):** SQLAlchemy 2.0 declarative base, engine lifecycle, and session management.
+* **Phase 3.2 (Completed):** SQLAlchemy 2.0 declarative base, synchronous engine lifecycle, session dependency injection, and connection verification.
+* **Phase 3.3 (Next):** Domain entities and relational data models (User, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
+* **Phase 3.5 (Future):** Alembic migrations and database schema management.
 
 ---
 
-## 10. Development Principles & Guardrails
+## 11. Development Principles & Guardrails
 
 * **Zero Patient Data Policy:** Real patient health information (PHI) must **never** be placed in this directory or used in test fixtures.
 * **Secrets Management:** Credentials, database passwords, and API keys must remain strictly in untracked local `.env` files; never commit secrets to version control.
