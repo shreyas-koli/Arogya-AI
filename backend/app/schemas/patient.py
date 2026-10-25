@@ -9,21 +9,31 @@ real patient identifiers, names, and contact details are strictly prohibited.
 from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from backend.app.schemas.common import BaseSchema, ORMModel
 
 BiologicalSex = Literal["male", "female", "other", "unknown"]
 
 
 class PatientBase(BaseSchema):
-    """Base schema attributes for patient records."""
+    """Base schema attributes for patient records.
+
+    Accepts either 'mrn_pseudonym' or 'mrn' as input via AliasChoices,
+    ensuring compatibility between API contracts and SQLAlchemy models.
+    """
 
     mrn_pseudonym: str = Field(
+        validation_alias=AliasChoices("mrn_pseudonym", "mrn"),
         min_length=3,
         max_length=64,
         description="Pseudonymous subject or synthetic medical record number (e.g. 'SYNTH-PAT-0001')",
         examples=["SYNTH-PAT-0001"],
     )
+
+    @property
+    def mrn(self) -> str:
+        """Alias property providing convenient access to mrn_pseudonym."""
+        return self.mrn_pseudonym
     birth_date: date | None = Field(
         default=None,
         description="Date or synthetic birth reference for demographic stratification",

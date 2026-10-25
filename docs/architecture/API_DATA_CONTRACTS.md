@@ -100,20 +100,22 @@ Collection endpoints return data wrapped in `PaginatedResponse[T]`:
 
 ---
 
-## 5. Rules Reserved for the Future Service Layer (Phase 3.6)
+## 5. Service Layer Consistency Rules & Mapping (Phase 3.6)
 
-Pydantic schemas enforce syntactic and structural validity. Semantic business rules requiring database queries or multi-entity coordination must **not** be placed in Pydantic validators and are explicitly reserved for the future service layer:
+Pydantic schemas enforce syntactic and structural validity. Semantic business rules requiring database queries, multi-entity coordination, and transactional atomicity are implemented in the domain service layer ([`backend/app/services/`](../../backend/app/services/)):
 
-1. **Patient-Encounter Referential Consistency:** When an `Observation`, `UploadedAsset`, or `AnalysisRun` references both a `patient_id` and an `encounter_id`, the service layer must verify that the specified encounter actually belongs to that patient.
-2. **Uniqueness Collision Handling:** Uniqueness of `username`, `email`, `mrn_pseudonym`, and `storage_path` must be caught via database transactions and translated into HTTP 409 Conflict envelopes.
-3. **Password Hashing:** Conversion of `UserCreate.password` into a secure cryptographic hash (e.g., Argon2id) occurs within the user service in Module 7 before persistence.
-4. **Physical File Upload & Verification:** Verifying that an uploaded binary payload matches its declared `file_size_bytes` and `checksum_sha256` digest is handled by the storage service in Module 5.
-5. **Role Assignment Authorization:** Ensuring that only users with administrative privileges can assign elevated roles to user accounts is enforced by authorization service policies in Module 7.
+1. **Patient-Encounter Referential Consistency:** When an `Observation`, `UploadedAsset`, or `AnalysisRun` references both a `patient_id` and an `encounter_id`, `ClinicalService` verifies that the specified encounter actually belongs to that patient, raising `ConsistencyError` on mismatch.
+2. **Schema-to-Model Mapping (`mrn` ↔ `mrn_pseudonym`):** `PatientBase` accepts either `mrn_pseudonym` or `mrn` via Pydantic `AliasChoices`, mapping transparently to the underlying `Patient.mrn_pseudonym` column without altering database history.
+3. **Uniqueness Collision Handling:** Uniqueness of `username`, `email`, `mrn_pseudonym`, and `storage_path` is proactively validated and translated into typed `DuplicateEntityError` domain exceptions.
+4. **Transaction Ownership:** Repositories and domain services do not commit sessions automatically. Services execute operations within caller-owned transaction boundaries (e.g. `with session.begin():` or FastAPI's request-scoped `get_db_session`). If a multi-entity operation fails, the complete transaction rolls back cleanly.
+5. **Audit Event Sanitization:** Operational mutations trigger audit logs via `AuditService`, where credentials (`password`, `hashed_password`, `secret_key`, `token`) are scrubbed before persistence.
 
 ---
 
 ## 6. Known Limitations & Deferred Features
 
-* **No Public CRUD Routers (Phase 3.6+):** Endpoints utilizing these schemas are not yet mounted. Schemas are prepared for domain services in Phase 3.6.
-* **No Database Migrations or Seed Records (Phase 3.5):** Physical tables and seed records remain deferred to Phase 3.5.
+* **No Public CRUD Routers (Module 4+):** Public HTTP routes utilizing these services and schemas are not yet mounted.
+* **Authentication & Authorization (Module 4/7):** Hashing passwords with Argon2/bcrypt and verifying actor role permissions is deferred to future authentication modules. Repository and service access alone does not provide access control.
+* **Audit Immutability Limitations:** Application-level audit records omit update/delete operations. Database-level trigger immutability and cryptographic tamper-proofing are deferred to Module 7/Module 13.
+* **Physical File Upload & Verification (Module 5):** Physical file ingestion, MIME type sniffing, and byte streaming remain deferred to the storage module.
 * **No Regulatory Compliance Claim:** The presence of healthcare data structures does not constitute automated HIPAA, GDPR, or CDSCO medical device compliance. Arogya AI is strictly an academic research prototype.

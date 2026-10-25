@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.5: Alembic Migrations & Synthetic Development Seed Data.<br/>
-> Alembic migration infrastructure (`alembic.ini`, `alembic/env.py`, initial revision `98574e91500e`), offline PostgreSQL DDL generation, and safe idempotent synthetic seed data generator (`scripts/seed_dev_data.py`) are established with strict zero-PHI and environment protections. Architecture details: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.6: Data Access Repositories & Clinical Domain Service Layer.<br/>
+> Dedicated repositories (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent) and coordinated domain services (`ClinicalService`, `UserService`, `AuditService`) are established with cross-entity referential integrity, MRN mapping, caller-owned transaction boundaries, and credential-sanitized audit logging. Architecture details: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/API_DATA_CONTRACTS.md`](../docs/architecture/API_DATA_CONTRACTS.md).
 
 ---
 
@@ -197,7 +197,22 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_migrations.py backend/tests/test_seed.py -v
 ```
 
+### Running Repository & Domain Service Tests Exclusively
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_repositories.py backend/tests/test_services.py -v
+```
+
 ### Test Scope & Coverage:
+* Data access repositories (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent) with CRUD operations, eager loading, and `None` returns for missing entities.
+* Repository bounded pagination sanitization clamping limit (1–500) and offset (>=0).
+* Domain services (`ClinicalService`, `UserService`, `AuditService`) managing business workflows and relational invariants.
+* Patient-Encounter-Observation ownership validation raising typed `ConsistencyError` on patient mismatches.
+* Asset and AnalysisRun cross-entity alignment raising `ConsistencyError` on invalid patient/encounter associations.
+* Pseudonymous MRN alias mapping (`mrn` ↔ `mrn_pseudonym`) via Pydantic `AliasChoices` without changing database schema.
+* Natural key uniqueness enforcement raising typed `DuplicateEntityError` (username, email, MRN, storage path).
+* Missing entity reference validation raising typed `EntityNotFoundError`.
+* Caller-owned transaction atomicity: verifying full rollback of multi-entity operations when exceptions occur.
+* Operational audit logging with automated credential redaction (`password`, `hashed_password`, `secret_key`, `token`).
 * Alembic migration configuration, script directory, and versions path resolution.
 * Target metadata validation registering all 9 healthcare entities and association tables in `Base.metadata`.
 * Initial migration revision (`98574e91500e`) schema parity: creation and dropping of all 9 tables.
@@ -289,6 +304,22 @@ Arogya-AI/
     │   │   ├── base.py      # SQLAlchemy 2.x declarative base and metadata
     │   │   ├── models.py    # Initial healthcare domain entities & user_roles
     │   │   └── session.py   # Engine, session factory, dependency, and connection check
+    │   ├── repositories/# Data access repositories (SQLAlchemy queries & CRUD)
+    │   │   ├── __init__.py
+    │   │   ├── base.py      # BaseRepository with pagination sanitization
+    │   │   ├── user.py      # UserRepository and RoleRepository
+    │   │   ├── patient.py   # PatientRepository with MRN lookup
+    │   │   ├── encounter.py # EncounterRepository
+    │   │   ├── observation.py # ObservationRepository
+    │   │   ├── asset.py     # AssetRepository
+    │   │   ├── analysis.py  # AnalysisRepository
+    │   │   └── audit.py     # AuditRepository (immutable append-only)
+    │   ├── services/    # Clinical domain services & business logic
+    │   │   ├── __init__.py
+    │   │   ├── exceptions.py# Typed domain exceptions (EntityNotFound, ConsistencyError)
+    │   │   ├── clinical.py  # ClinicalService (patient, encounter, obs, asset, analysis)
+    │   │   ├── user.py      # UserService (user lifecycle, role assignments)
+    │   │   └── audit.py     # AuditService (credential-scrubbed audit logging)
     │   └── schemas/     # Pydantic v2 API data contracts & serialization schemas
     │       ├── __init__.py  # Schema package exports (32 symbols)
     │       ├── common.py    # BaseSchema, ORMModel, PaginatedResponse, timezone validators
@@ -302,15 +333,17 @@ Arogya-AI/
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
-    │   ├── test_database.py   # Database engine, session lifecycle, and probe tests
-    │   ├── test_models.py     # Clinical domain entities & relationship tests
-    │   ├── test_schemas.py    # Pydantic contract validation & serialization tests
-    │   ├── test_migrations.py # Alembic configuration & schema migration tests
-    │   ├── test_seed.py       # Synthetic development seed data tests
+    │   ├── test_database.py     # Database engine, session lifecycle, and probe tests
+    │   ├── test_models.py       # Clinical domain entities & relationship tests
+    │   ├── test_schemas.py      # Pydantic contract validation & serialization tests
+    │   ├── test_migrations.py   # Alembic configuration & schema migration tests
+    │   ├── test_seed.py         # Synthetic development seed data tests
+    │   ├── test_repositories.py # Data access repository unit tests
+    │   ├── test_services.py     # Clinical domain services & consistency tests
     │   ├── test_health.py
     │   ├── test_errors.py
-    │   ├── test_openapi.py   # OpenAPI schema & contract regression tests
-    │   └── test_settings.py  # Settings validation & runtime hardening tests
+    │   ├── test_openapi.py     # OpenAPI schema & contract regression tests
+    │   └── test_settings.py    # Settings validation & runtime hardening tests
     ├── requirements.txt # Pinned core backend and testing dependencies
     └── README.md        # Backend developer guide and setup notes
 ```
@@ -325,8 +358,8 @@ Arogya-AI/
 * **Phase 3.3 (Completed):** Domain entities and relational data models (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
 * **Phase 3.4 (Completed):** Pydantic API data contracts, validation rules, sensitive field shielding, and serialization schemas.
 * **Phase 3.5 (Completed):** Alembic migrations, database schema revision tree (`98574e91500e`), offline PostgreSQL DDL generation, and synthetic development seed data generator.
-* **Phase 3.6 (Next):** Data access repositories and clinical domain service layer.
-* **Phase 3.7 (Future):** Database backup, recovery, and point-in-time disaster recovery verification.
+* **Phase 3.6 (Completed):** Data access repositories, clinical domain service layer, cross-entity consistency enforcement, MRN alias mapping, and credential-sanitized audit logging.
+* **Phase 3.7 (Next):** Database backup, recovery, and point-in-time disaster recovery verification.
 
 ---
 

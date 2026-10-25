@@ -1,11 +1,11 @@
 # Arogya AI — Backend Configuration & Environment Validation
 
-> **Status Notice:** Updated as of Module 3 (Database Persistence & Data Layer), Phase 3.5.<br/>
-> This document specifies the validated configuration settings, environment variable bindings, type invariants, runtime hardening controls, database engine/session lifecycle mechanics, Alembic migration commands, and synthetic development seed mechanisms for Arogya AI.
+> **Status Notice:** Updated as of Module 3 (Database Persistence & Data Layer), Phase 3.6.<br/>
+> This document specifies the validated configuration settings, environment variable bindings, type invariants, runtime hardening controls, database engine/session lifecycle mechanics, Alembic migration commands, synthetic development seed mechanisms, and data access repositories & domain services for Arogya AI.
 >
 > **Scope Boundary:**
-> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, OpenAPI endpoints, synchronous PostgreSQL database engine/session infrastructure, Alembic schema migrations, and synthetic development seed data.
-> * **Placeholders & Deferred Settings:** Cryptographic secrets (Module 7) are validated placeholders that default to `None`. Repositories and service layers (Phase 3.6) remain future phases.
+> * **Active Configuration:** Core application identity, environment profiles, server network parameters, versioned API prefixing, logging severity, OpenAPI endpoints, synchronous PostgreSQL database engine/session infrastructure, Alembic schema migrations, synthetic development seed data, and data access repositories & domain services.
+> * **Placeholders & Deferred Settings:** Cryptographic secrets (Module 7) are validated placeholders that default to `None`. Database backup/recovery procedures (Phase 3.7) remain future phases.
 
 ---
 
@@ -195,7 +195,46 @@ A standalone script ([`scripts/seed_dev_data.py`](../../scripts/seed_dev_data.py
 
 ---
 
-## 6. Test Isolation & Settings Overriding
+## 6. Data Access Repositories & Clinical Domain Services (Phase 3.6)
+
+Data persistence and business logic are layered into specialized repositories and domain services:
+
+### Package Architecture
+* **Repositories (`backend/app/repositories/`):**
+  * [`RoleRepository`](../../backend/app/repositories/user.py), [`UserRepository`](../../backend/app/repositories/user.py) — role queries and user account persistence.
+  * [`PatientRepository`](../../backend/app/repositories/patient.py) — cohort management and pseudonymous MRN queries.
+  * [`EncounterRepository`](../../backend/app/repositories/encounter.py) — clinical encounter tracking.
+  * [`ObservationRepository`](../../backend/app/repositories/observation.py) — vital signs and numeric/text observation recordings.
+  * [`AssetRepository`](../../backend/app/repositories/asset.py) — uploaded file metadata and SHA-256 integrity checksums.
+  * [`AnalysisRepository`](../../backend/app/repositories/analysis.py) — AI model runs and evaluation output containers.
+  * [`AuditRepository`](../../backend/app/repositories/audit.py) — immutable operational audit event storage.
+* **Domain Services (`backend/app/services/`):**
+  * [`ClinicalService`](../../backend/app/services/clinical.py) — coordinates clinical entity lifecycles, enforcing cross-entity referential integrity (patient existence, encounter ownership, observation consistency, asset consistency).
+  * [`UserService`](../../backend/app/services/user.py) — coordinates user accounts and authorization roles, enforcing username and email uniqueness.
+  * [`AuditService`](../../backend/app/services/audit.py) — coordinates audit logging, automatically redacting credentials (`password`, `token`, `secret_key`) from metadata.
+  * [`exceptions.py`](../../backend/app/services/exceptions.py) — typed domain exceptions (`EntityNotFoundError`, `ConsistencyError`, `DuplicateEntityError`, `DomainValidationError`).
+
+### Transaction Ownership Policy
+* **Caller-Owned Transactions:** Neither repositories nor domain services commit sessions automatically. They flush changes (`session.flush()`) to enforce database constraints and populate IDs.
+* **Composition & Atomicity:** Callers (e.g., FastAPI's request-scoped `get_db_session` dependency or an explicit `with session.begin():` block) control commit and rollback. If any multi-entity operation fails, the outer transaction rollback discards all uncommitted operations atomically.
+
+### Usage Example with Session Dependency
+```python
+from backend.app.db.session import get_db_session
+from backend.app.services.clinical import ClinicalService
+from backend.app.schemas.patient import PatientCreate
+
+# Within a FastAPI dependency or session context:
+with session.begin():
+    service = ClinicalService(session)
+    patient = service.create_patient(
+        PatientCreate(mrn_pseudonym="SYNTH-PAT-0001", is_synthetic=True)
+    )
+```
+
+---
+
+## 7. Test Isolation & Settings Overriding
 
 To ensure tests remain isolated and deterministic without leaking state:
 
@@ -205,7 +244,7 @@ To ensure tests remain isolated and deterministic without leaking state:
 
 ---
 
-## 7. Deployment Preflight Checklist
+## 8. Deployment Preflight Checklist
 
 Before promoting any Arogya AI backend instance to staging or production:
 
