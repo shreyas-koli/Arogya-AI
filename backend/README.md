@@ -2,8 +2,8 @@
 
 This directory contains the Python backend service, REST API routers, domain logic, and backend test suites for Arogya AI.
 
-> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.4: Pydantic Request/Response Schemas & Data Contracts.<br/>
-> Decoupled Pydantic v2 data contracts for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent, and generic pagination are established with strict validation, sensitive field shielding, and ORM serialization. Full specifications: [`docs/architecture/API_DATA_CONTRACTS.md`](../docs/architecture/API_DATA_CONTRACTS.md) and [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md).
+> **Status:** Module 3 (Database Persistence & Data Layer) — Phase 3.5: Alembic Migrations & Synthetic Development Seed Data.<br/>
+> Alembic migration infrastructure (`alembic.ini`, `alembic/env.py`, initial revision `98574e91500e`), offline PostgreSQL DDL generation, and safe idempotent synthetic seed data generator (`scripts/seed_dev_data.py`) are established with strict zero-PHI and environment protections. Architecture details: [`docs/architecture/CONFIGURATION.md`](../docs/architecture/CONFIGURATION.md) and [`docs/architecture/DATA_MODEL.md`](../docs/architecture/DATA_MODEL.md).
 
 ---
 
@@ -19,6 +19,7 @@ This directory contains the Python backend service, REST API routers, domain log
   * `httpx>=0.27.0,<1.0.0`
   * `sqlalchemy>=2.0.0,<3.0.0`
   * `psycopg[binary]>=3.2.0,<4.0.0`
+  * `alembic>=1.13.0,<2.0.0`
 
 ### Installing Dependencies into `.venv`
 ```powershell
@@ -191,7 +192,22 @@ Backend tests are organized with root-level [`pytest.ini`](../pytest.ini) and sh
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_schemas.py -v
 ```
 
+### Running Migration & Seed Tests Exclusively
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_migrations.py backend/tests/test_seed.py -v
+```
+
 ### Test Scope & Coverage:
+* Alembic migration configuration, script directory, and versions path resolution.
+* Target metadata validation registering all 9 healthcare entities and association tables in `Base.metadata`.
+* Initial migration revision (`98574e91500e`) schema parity: creation and dropping of all 9 tables.
+* Cascade referential actions on association tables, RESTRICT policies protecting historical patient records, and SET NULL on audit/asset links.
+* Offline PostgreSQL DDL generation without requiring a live database connection (`alembic upgrade head --sql`).
+* Seed environment safety guard refusing execution in `production`, `prod`, `staging`, and `live`.
+* CLI opt-in enforcement requiring `--confirm-dev-seed`.
+* Deterministic seed record generation and strict idempotency (0 new records on second run).
+* Transactional rollback verification ensuring failures leave no partial records.
+* Seed data governance: zero-PHI synthetic patient MRNs, locked account password sentinels, and demo AI output disclaimers.
 * Pydantic v2 request/response contracts for User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, and AuditEvent domains.
 * Strict input validation with `extra="forbid"` to reject unexpected, undocumented client fields.
 * Automatic string whitespace stripping on all incoming payload fields.
@@ -249,8 +265,15 @@ Arogya-AI/
 ├── pytest.ini           # Root pytest test runner configuration
 ├── scripts/
 │   ├── run_backend.ps1  # Local development server and test automation
+│   ├── seed_dev_data.py # Idempotent synthetic development seed data generator
 │   └── validate_foundation.ps1
 └── backend/
+    ├── alembic.ini      # Alembic migration configuration
+    ├── alembic/         # Alembic migration environment and versions
+    │   ├── env.py       # Migration runner (binds Base.metadata and resolves DB URL)
+    │   ├── script.py.mako # Migration template
+    │   └── versions/
+    │       └── 98574e91500e_initial_schema.py # Initial healthcare domain migration
     ├── app/
     │   ├── __init__.py  # Package exports (create_app, Settings, Error models)
     │   ├── main.py      # Application factory, middleware, and router registration
@@ -279,13 +302,15 @@ Arogya-AI/
     ├── tests/
     │   ├── __init__.py  # Backend test package
     │   ├── conftest.py  # Shared pytest fixtures (app, client, test_settings)
-    │   ├── test_database.py # Database engine, session lifecycle, and probe tests
-    │   ├── test_models.py   # Clinical domain entities & relationship tests
-    │   ├── test_schemas.py  # Pydantic contract validation & serialization tests
+    │   ├── test_database.py   # Database engine, session lifecycle, and probe tests
+    │   ├── test_models.py     # Clinical domain entities & relationship tests
+    │   ├── test_schemas.py    # Pydantic contract validation & serialization tests
+    │   ├── test_migrations.py # Alembic configuration & schema migration tests
+    │   ├── test_seed.py       # Synthetic development seed data tests
     │   ├── test_health.py
     │   ├── test_errors.py
-    │   ├── test_openapi.py # OpenAPI schema & contract regression tests
-    │   └── test_settings.py# Settings validation & runtime hardening tests
+    │   ├── test_openapi.py   # OpenAPI schema & contract regression tests
+    │   └── test_settings.py  # Settings validation & runtime hardening tests
     ├── requirements.txt # Pinned core backend and testing dependencies
     └── README.md        # Backend developer guide and setup notes
 ```
@@ -299,8 +324,8 @@ Arogya-AI/
 * **Phase 3.2 (Completed):** SQLAlchemy 2.0 declarative base, synchronous engine lifecycle, session dependency injection, and connection verification.
 * **Phase 3.3 (Completed):** Domain entities and relational data models (User, Role, Patient, Encounter, Observation, UploadedAsset, AnalysisRun, AuditEvent).
 * **Phase 3.4 (Completed):** Pydantic API data contracts, validation rules, sensitive field shielding, and serialization schemas.
-* **Phase 3.5 (Next):** Alembic migrations, database schema revision tree, and initial clinical seed data.
-* **Phase 3.6 (Future):** Data access repositories and clinical domain service layer.
+* **Phase 3.5 (Completed):** Alembic migrations, database schema revision tree (`98574e91500e`), offline PostgreSQL DDL generation, and synthetic development seed data generator.
+* **Phase 3.6 (Next):** Data access repositories and clinical domain service layer.
 * **Phase 3.7 (Future):** Database backup, recovery, and point-in-time disaster recovery verification.
 
 ---
