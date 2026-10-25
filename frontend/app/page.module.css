@@ -1,57 +1,18 @@
 /* ==============================================================================
-   Arogya AI — Landing Page Styles (Module 4, Phase 4.2)
-   Consumes semantic Arogya AI design tokens for clinical clarity and precision.
+   Arogya AI — Landing Page Styles (Module 4, Phase 4.3)
+   Adapted for the shared AppShell layout and PageContainer.
+   Consumes semantic design tokens for clinical clarity and precision.
    ============================================================================== */
 
 .container {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  gap: var(--space-10);
 }
 
 /* -----------------------------------------------------------------------------
-   Header & Brand Identity
+   Stage Badge
    ----------------------------------------------------------------------------- */
-.header {
-  border-bottom: var(--border-width-sm) solid var(--color-border-subtle);
-  background-color: var(--color-bg-surface);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.headerInner {
-  max-width: var(--layout-max-width);
-  margin: 0 auto;
-  padding: var(--space-4) var(--space-6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brandLink {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-h3);
-  color: var(--color-text-primary);
-  text-decoration: none;
-}
-
-.brandIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-brand-subtle);
-  border: var(--border-width-sm) solid var(--color-brand-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-brand-primary);
-  box-shadow: var(--shadow-sm);
-}
-
 .stageBadge {
   display: inline-flex;
   align-items: center;
@@ -70,49 +31,6 @@
   height: 7px;
   border-radius: var(--radius-full);
   background-color: var(--color-brand-primary);
-}
-
-/* -----------------------------------------------------------------------------
-   Main Content Layout
-   ----------------------------------------------------------------------------- */
-.main {
-  flex: 1;
-  max-width: var(--layout-max-width);
-  width: 100%;
-  margin: 0 auto;
-  padding: var(--layout-page-gutter-y) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-}
-
-/* -----------------------------------------------------------------------------
-   Hero Section
-   ----------------------------------------------------------------------------- */
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-4);
-  max-width: var(--layout-readable-width);
-}
-
-.title {
-  font-size: var(--font-size-display);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
-}
-
-.titleAccent {
-  color: var(--color-brand-primary);
-}
-
-.subtitle {
-  font-size: var(--font-size-body-lg);
-  line-height: var(--line-height-relaxed);
-  color: var(--color-text-secondary);
 }
 
 /* -----------------------------------------------------------------------------
@@ -181,7 +99,7 @@
    ----------------------------------------------------------------------------- */
 .pillarsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-6);
 }
 
@@ -312,18 +230,15 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Footer
+   Landing Page Footer
    ----------------------------------------------------------------------------- */
 .footer {
   border-top: var(--border-width-sm) solid var(--color-border-subtle);
-  background-color: var(--color-bg-surface);
-  padding: var(--space-8) var(--space-6);
-  margin-top: auto;
+  padding: var(--space-6) 0;
+  margin-top: var(--space-4);
 }
 
 .footerInner {
-  max-width: var(--layout-max-width);
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -347,19 +262,6 @@
    Responsive Breakpoints
    ----------------------------------------------------------------------------- */
 @media (max-width: 768px) {
-  .main {
-    padding: var(--space-8) var(--space-4);
-    gap: var(--space-8);
-  }
-
-  .headerInner {
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .stageBadge {
-    display: none;
-  }
-
   .disclaimerBox {
     flex-direction: column;
     padding: var(--space-4);

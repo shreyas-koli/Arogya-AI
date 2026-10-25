@@ -1,55 +1,24 @@
+import { PageContainer } from "@/components/layout/PageContainer";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
-    <div className={styles.container}>
-      {/* Semantic Accessible Header */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.brandLink}>
-            <span className={styles.brandIcon} aria-hidden="true">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 4v16m-8-8h16" />
-              </svg>
-            </span>
-            <span>Arogya AI</span>
-          </div>
-
-          <div
-            className={styles.stageBadge}
-            role="status"
-            aria-label="Current implementation stage"
-          >
-            <span className={styles.stageDot} aria-hidden="true" />
-            <span>Module 4: Design Tokens & Visual Foundation</span>
-          </div>
+    <PageContainer
+      title="Clinical Intelligence & Decision Support"
+      description="A modular healthcare intelligence and clinical decision-support research prototype investigating multimodal patient context, diagnostic assistance, and structured evidence synthesis for clinical research."
+      breadcrumbs={[{ label: "Overview" }]}
+      badge={
+        <div
+          className={styles.stageBadge}
+          role="status"
+          aria-label="Current implementation stage: Module 4 Application Shell"
+        >
+          <span className={styles.stageDot} aria-hidden="true" />
+          <span>Module 4: Application Shell</span>
         </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main id="main-content" className={styles.main}>
-        {/* Hero Section */}
-        <section className={styles.hero} aria-labelledby="hero-title">
-          <h1 id="hero-title" className={styles.title}>
-            Clinical Intelligence &amp;{" "}
-            <span className={styles.titleAccent}>Decision Support</span>
-          </h1>
-          <p className={styles.subtitle}>
-            A modular healthcare intelligence and clinical decision-support research
-            prototype investigating multimodal patient context, diagnostic assistance,
-            and structured evidence synthesis for clinical research.
-          </p>
-        </section>
-
+      }
+    >
+      <div className={styles.container}>
         {/* Mandatory Clinical Safety & Research Disclaimer */}
         <section
           className={styles.disclaimerBox}
@@ -188,8 +157,8 @@ export default function Home() {
               </p>
             </div>
             <div className={styles.statusTags}>
-              <span className={styles.badgeSuccess}>Tokens Verified</span>
-              <span className={styles.badgeInfo}>Phase 4.2</span>
+              <span className={styles.badgeSuccess}>App Shell Active</span>
+              <span className={styles.badgeInfo}>Phase 4.3</span>
             </div>
           </div>
 
@@ -199,8 +168,8 @@ export default function Home() {
               <span className={styles.specValue}>Next.js + FastAPI Monorepo</span>
             </div>
             <div className={styles.specItem}>
-              <span className={styles.specLabel}>Frontend Engine</span>
-              <span className={styles.specValue}>Next.js 16 (App Router)</span>
+              <span className={styles.specLabel}>Application Shell</span>
+              <span className={styles.specValue}>Sidebar + Header + Breadcrumbs</span>
             </div>
             <div className={styles.specItem}>
               <span className={styles.specLabel}>Type Safety</span>
@@ -212,21 +181,21 @@ export default function Home() {
             </div>
           </div>
         </section>
-      </main>
 
-      {/* Semantic Accessible Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <p className={styles.footerText}>
-            Arogya AI &copy; 2026 — Clinical Multimodal Intelligence &amp; Decision-Support
-            Prototype.
-          </p>
-          <p className={styles.footerNotice}>
-            Academic research prototype. Designed strictly for clinician review and evaluation;
-            not for autonomous medical decision-making.
-          </p>
-        </div>
-      </footer>
-    </div>
+        {/* Semantic Accessible Footer */}
+        <footer className={styles.footer}>
+          <div className={styles.footerInner}>
+            <p className={styles.footerText}>
+              Arogya AI &copy; 2026 — Clinical Multimodal Intelligence &amp; Decision-Support
+              Prototype.
+            </p>
+            <p className={styles.footerNotice}>
+              Academic research prototype. Designed strictly for clinician review and evaluation;
+              not for autonomous medical decision-making.
+            </p>
+          </div>
+        </footer>
+      </div>
+    </PageContainer>
   );
 }

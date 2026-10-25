@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.2: Design Tokens and Visual Foundation.<br/>
-> Established comprehensive clinical design tokens in Vanilla CSS, accessible styling primitives, high-contrast palette with light/dark support, responsive layout scales, and WCAG AA/AAA compliant typography.
+> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.3: Application Shell & Navigation.<br/>
+> Established responsive application shell with semantic sidebar navigation, clinical header, breadcrumbs, accessible mobile drawer, PageContainer wrapper, and valid internal roadmap routes (`/`, `/patients`, `/analysis`, `/research`, `/admin`).
 
 ---
 
@@ -47,16 +47,35 @@ All commands are executed from the `frontend/` directory:
 
 ---
 
-## 4. Design Tokens & Visual Foundation
+## 4. Application Shell & Navigation (Phase 4.3)
+
+The application shell provides a standardized, accessible clinical-research layout across all routes.
+
+### Shell Architecture & Components
+
+* **`AppShell` ([`components/layout/AppShell.tsx`](components/layout/AppShell.tsx)):** Master client shell managing layout geometry, mobile navigation drawer state, backdrop overlay, route synchronization, and `Escape` key listeners.
+* **`Sidebar` ([`components/layout/Sidebar.tsx`](components/layout/Sidebar.tsx)):** Primary navigation sidebar featuring semantic `<nav>` markup, active route highlighting (`aria-current="page"`), roadmap stage badges, and prototype version/safety footer.
+* **`Header` ([`components/layout/Header.tsx`](components/layout/Header.tsx)):** Clinical header providing mobile drawer toggling (`aria-expanded`, `aria-controls`), dynamic route context title, and prominent "Research Prototype — Human Review Only" safety indicator.
+* **`Breadcrumbs` ([`components/layout/Breadcrumbs.tsx`](components/layout/Breadcrumbs.tsx)):** W3C WAI-ARIA compliant breadcrumb trail reflecting true hierarchical routing.
+* **`PageContainer` ([`components/layout/PageContainer.tsx`](components/layout/PageContainer.tsx)):** Reusable page scaffold providing standardized heading, description, breadcrumb integration, and responsive content margins.
+
+### Canonical Roadmap Destinations
+
+All navigation links resolve to valid, statically prerendered routes inside the shell:
+
+| Navigation Item | Route | Roadmap Module | Purpose | Status in Shell |
+| :--- | :--- | :--- | :--- | :--- |
+| **Overview** | `/` | Module 4 | Clinical intelligence overview & research landing | Active Shell & Spec |
+| **Patient Intelligence** | `/patients` | Module 6 | Longitudinal timelines, encounter history, vitals | Planned Roadmap Preview |
+| **Clinical Workspace** | `/analysis` | Module 8 | Multimodal case intake, triage, and review | Planned Roadmap Preview |
+| **AI Research Lab** | `/research` | Module 18 / M9–14 | Model evaluation, SHAP, and Grad-CAM benches | Planned Roadmap Preview |
+| **Administration** | `/admin` | Module 19 | Role-based access control & audit trail | Planned Roadmap Preview |
+
+---
+
+## 5. Design Tokens & Visual Foundation
 
 The design system communicates clinical clarity, scientific credibility, precision, and trust. Tokens are implemented entirely as standard CSS custom properties in [`frontend/app/globals.css`](app/globals.css) and consumed via CSS Modules.
-
-### Token Location & Structure
-
-All design tokens are defined on `:root` and `@media (prefers-color-scheme: dark)` in:
-```text
-frontend/app/globals.css
-```
 
 ### Semantic Token Categories
 
@@ -74,39 +93,9 @@ frontend/app/globals.css
 | **Layout & Sizing** | `--layout-`, `--control-` | `--layout-max-width` (1120px), `--control-height-md` (40px) | Layout constraints, gutters, and dense row tokens. |
 | **Motion** | `--motion-` | `--motion-duration-fast`, `--motion-easing-default` | Respects `prefers-reduced-motion` unconditionally. |
 
-### How to Consume Design Tokens
-
-When styling components, import the component CSS module and reference CSS custom properties directly:
-
-```css
-/* Example Component CSS Module */
-.clinicalCard {
-  background-color: var(--color-bg-surface);
-  border: var(--border-width-sm) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-sm);
-  color: var(--color-text-primary);
-}
-
-.criticalAlert {
-  background-color: var(--color-danger-bg);
-  border: var(--border-width-sm) solid var(--color-danger-border);
-  color: var(--color-danger-fg);
-}
-```
-
-### Guidelines for Future Components
-
-1. **No Hardcoded Values:** Do not introduce ad-hoc hex colors, arbitrary pixel paddings, or one-off margins. Always use `--color-*` and `--space-*` tokens.
-2. **Accessible Contrast:** Text must maintain at least 4.5:1 contrast against its background (WCAG AA) and 7:1 for headings/primary text (WCAG AAA).
-3. **Keyboard Focus:** Always preserve visible keyboard focus via `:focus-visible` using `--color-focus-ring`.
-4. **Reduced Motion:** Interactive transitions must use `--motion-duration-*` or be disabled under `@media (prefers-reduced-motion: reduce)`.
-5. **Dark Mode Coherence:** Use semantic color tokens (`--color-bg-surface`, `--color-text-primary`) rather than fixed white/black so the dark color scheme adapts automatically.
-
 ---
 
-## 5. Environment Variables
+## 6. Environment Variables
 
 Frontend configuration is driven by environment variables using Next.js conventions:
 
@@ -122,34 +111,50 @@ Frontend configuration is driven by environment variables using Next.js conventi
 
 ---
 
-## 6. Directory Structure
+## 7. Directory Structure
 
 ```text
 frontend/
-├── .env.example         # Environment variable template
-├── .gitignore           # Frontend-specific ignores (.next, node_modules)
-├── eslint.config.mjs    # ESLint 9 flat configuration
-├── next.config.ts       # Next.js configuration (Turbopack, cache components)
-├── next-env.d.ts        # Next.js TypeScript type declarations
-├── package.json         # Pinned frontend dependencies and scripts
-├── package-lock.json    # Deterministic npm lockfile
-├── tsconfig.json        # TypeScript strict configuration
-├── README.md            # Frontend architecture & design token documentation
+├── .env.example                # Environment variable template
+├── .gitignore                  # Frontend-specific ignores (.next, node_modules)
+├── eslint.config.mjs           # ESLint 9 flat configuration
+├── next.config.ts              # Next.js configuration (Turbopack, cache components)
+├── next-env.d.ts               # Next.js TypeScript type declarations
+├── package.json                # Pinned frontend dependencies and scripts
+├── package-lock.json           # Deterministic npm lockfile
+├── tsconfig.json               # TypeScript strict configuration
+├── README.md                   # Frontend architecture & navigation documentation
 ├── app/
-│   ├── favicon.ico      # Application favicon
-│   ├── globals.css      # Vanilla CSS design tokens system & accessible reset
-│   ├── layout.tsx       # Root layout, skip-to-content, fonts, and metadata
-│   ├── page.tsx         # Product landing page demonstrating design tokens
-│   └── page.module.css  # Scoped CSS module consuming semantic tokens
-└── public/              # Static public assets (SVG icons, logos)
+│   ├── favicon.ico             # Application favicon
+│   ├── globals.css             # Vanilla CSS design tokens system & accessible reset
+│   ├── layout.tsx              # Root layout wrapping AppShell & fonts
+│   ├── page.tsx                # Overview & research landing page
+│   ├── page.module.css         # Scoped CSS module for landing page content
+│   ├── admin/
+│   │   └── page.tsx            # Administration & governance route
+│   ├── analysis/
+│   │   └── page.tsx            # Clinical workspace & case analysis route
+│   ├── patients/
+│   │   └── page.tsx            # Patient intelligence & timeline route
+│   └── research/
+│       └── page.tsx            # AI research lab & model evaluation route
+├── components/
+│   └── layout/
+│       ├── AppShell.tsx        # Master responsive layout container
+│       ├── AppShell.module.css # Scoped styles for shell, sidebar, and header
+│       ├── Breadcrumbs.tsx     # Semantic accessible breadcrumbs component
+│       ├── Header.tsx          # Top bar with page context & status indicator
+│       ├── PageContainer.tsx   # Reusable page scaffold
+│       ├── PageContainer.module.css # Scoped styles for PageContainer
+│       └── Sidebar.tsx         # Primary navigation sidebar & mobile drawer
+└── public/                     # Static public assets (SVG icons, logos)
 ```
 
 ---
 
-## 7. Current Implementation Limitations & Roadmap
+## 8. Current Implementation Limitations & Roadmap
 
-* **Clinical Workflow Disconnection:** In Phase 4.2, the frontend serves as an isolated application shell and landing page. It is **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
-* **Component Library (Phase 4.3):** Shared button, input, badge, table, modal, and clinical card components will be established in subsequent phases.
-* **Navigation & Shell (Phase 4.4):** Sidebar navigation, breadcrumbs, and clinician workspace shells belong to later phases.
-* **Authentication & Authorization:** Client-side route guards and JWT/session management are deferred to subsequent phases.
+* **Clinical Workflow Disconnection:** In Phase 4.3, the frontend provides the application shell and navigation framework. Destination routes are valid and styled, but **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
+* **Component Library (Phase 4.4+):** Shared button, input, badge, table, modal, and clinical card components will be established in subsequent phases.
+* **Authentication & Authorization:** Client-side route guards, user session state, and JWT token refresh are deferred to Module 7.
 * **Research Disclaimer:** Arogya AI is an investigative research prototype. It does not provide certified medical diagnosis or autonomous clinical decision-making.
