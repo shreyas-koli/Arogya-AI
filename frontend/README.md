@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.5: Loading, Empty, Error & Access-Denied States.<br/>
-> Established comprehensive library of reusable, accessible UI component primitives and application states (`LoadingState`, `EmptyState`, `ErrorState`, `InlineError`, `AccessDeniedState`, `PlannedFeatureState`, plus Next.js App Router `error.tsx` and `not-found.tsx`) built on Arogya AI design tokens and integrated into the application shell. Verified with 43 automated unit tests across 15 suites.
+> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.6: Complete Route Architecture.<br/>
+> Established complete Next.js 16 App Router architecture covering all 21 canonical roadmap modules. Delivered 16 direct-loadable user-facing routes with honest `PlannedFeatureState` presentations, grouped sidebar navigation, comprehensive route inventory documentation (`frontend/docs/ROUTES.md`), and automated verification with 60 unit tests across 18 suites.
 
 ---
 
@@ -41,11 +41,11 @@ All commands are executed from the `frontend/` directory:
 | Command | Action | Description |
 | :--- | :--- | :--- |
 | `npm run dev` | Local Dev Server | Starts Next.js development server at `http://localhost:3000` with fast refresh. |
-| `npm run build` | Production Build | Compiles TypeScript, runs route optimization, and generates static production output. |
+| `npm run build` | Production Build | Compiles TypeScript, runs route optimization, and generates static production output for all 19 routes. |
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 43 component and state unit tests across 15 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 60 component, state, and route unit tests across 18 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -320,14 +320,21 @@ frontend/
 │   ├── page.module.css         # Scoped CSS module for landing page content
 │   ├── error.tsx               # Next.js App Router route-level error boundary
 │   ├── not-found.tsx           # Next.js App Router 404 handler
-│   ├── admin/
-│   │   └── page.tsx            # Administration & governance route
-│   ├── analysis/
-│   │   └── page.tsx            # Clinical workspace & case analysis route
-│   ├── patients/
-│   │   └── page.tsx            # Patient intelligence & timeline route
-│   └── research/
-│       └── page.tsx            # AI research lab & model evaluation route
+│   ├── admin/page.tsx          # M19: Platform Administration & Governance
+│   ├── agents/page.tsx         # M11: Multi-Agent Orchestration & State Graph
+│   ├── analysis/page.tsx       # M8: Clinical Workspace & Case Analysis
+│   ├── explainability/page.tsx # M14: Explainability & Evidence Presentation (XAI)
+│   ├── imaging/page.tsx        # M10: Chest X-ray Imaging & Research Pipeline
+│   ├── knowledge/page.tsx      # M12: Medical Knowledge Hub & RAG Retrieval
+│   ├── monitoring/page.tsx     # M20: System Deployment & Telemetry Health
+│   ├── operations/page.tsx     # M17: Hospital Intelligence & Resource Simulation
+│   ├── patients/page.tsx       # M6: Patient Intelligence & Cohort Profiles
+│   ├── readiness/page.tsx      # M21: Research Documentation & Readiness Review
+│   ├── research/page.tsx       # M18: AI Research Lab & Model Evaluation
+│   ├── reviews/page.tsx        # M15: Clinician Review, Critique & Reports
+│   ├── safety/page.tsx         # M13: Critic, Consensus & Uncertainty Safety
+│   ├── security/page.tsx       # M7: Security Safeguards & Identity Management
+│   └── timeline/page.tsx       # M16: Longitudinal Patient Trajectory & Follow-up
 ├── components/
 │   ├── layout/
 │   │   ├── AppShell.tsx        # Master responsive layout container
@@ -336,7 +343,7 @@ frontend/
 │   │   ├── Header.tsx          # Top bar with page context & status indicator
 │   │   ├── PageContainer.tsx   # Reusable page scaffold
 │   │   ├── PageContainer.module.css # Scoped styles for PageContainer
-│   │   └── Sidebar.tsx         # Primary navigation sidebar & mobile drawer
+│   │   └── Sidebar.tsx         # Primary grouped navigation sidebar & mobile drawer
 │   ├── states/
 │   │   ├── index.ts            # Central barrel export for all state primitives
 │   │   ├── LoadingState.tsx    # Page/section/card skeleton loading state
@@ -369,12 +376,15 @@ frontend/
 │       ├── Tabs.module.css     # Scoped styles for Tabs
 │       ├── Toast.tsx           # Accessible notification toast
 │       └── Toast.module.css    # Scoped styles for Toast
+├── docs/
+│   └── ROUTES.md               # Canonical 21-module route inventory & architecture
 ├── tests/
 │   ├── css-loader.mjs          # Node ESM loader for mocking CSS module imports
 │   ├── register-css.mjs        # Node loader registration hook
 │   ├── components.test.tsx     # 24 unit tests covering UI primitives
 │   ├── dialog.test.tsx         # 6 focused unit tests for dialog keyboard & accessibility
-│   └── states.test.tsx         # 13 unit tests covering all application states & 404
+│   ├── states.test.tsx         # 13 unit tests covering all application states & 404
+│   └── routes.test.tsx         # 17 unit tests verifying 21-module route coverage & sidebar
 └── public/                     # Static public assets (SVG icons, logos)
 ```
 
@@ -382,7 +392,7 @@ frontend/
 
 ## 9. Current Implementation Limitations & Roadmap
 
-* **Clinical Workflow Disconnection:** In Phase 4.5, the frontend provides the application shell, navigation framework, reusable UI primitives, and application states (loading, empty, error, access-denied, planned feature). Destination routes and component previews are functional and styled, but **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
+* **Clinical Workflow Disconnection:** In Phase 4.6, the frontend provides the full application route architecture, grouped sidebar navigation, reusable UI primitives, and application states for all 21 roadmap modules. Destination routes and component previews are direct-loadable and styled, but **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
 * **Authentication & Authorization:** Client-side route guards, user session state, and JWT token refresh are deferred to Module 7. Frontend `AccessDeniedState` is strictly a presentation layer pattern and does not represent an enforced security boundary.
-* **Automated Browser Automation Environment:** In this environment, headless browser context initialization encountered a CDP port resolution limitation during subagent execution. Component rendering, static optimization, and unit testing were verified via Next.js Turbopack build and Node.js test runner suites.
+* **Automated Browser Automation Environment:** In this environment, headless browser context initialization encountered a CDP port resolution limitation during subagent execution. Component rendering, static optimization, and unit testing were verified via Next.js Turbopack build (all 19 routes statically prerendered) and Node.js test runner suites (60 tests passed across 18 suites).
 * **Research Disclaimer:** Arogya AI is an investigative research prototype. It does not provide certified medical diagnosis or autonomous clinical decision-making.
