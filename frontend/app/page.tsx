@@ -1,21 +1,55 @@
+"use client";
+
+import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
+import {
+  Button,
+  Badge,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+  DialogClose,
+  FormField,
+  Input,
+  Checkbox,
+  Skeleton,
+  Toast,
+} from "@/components/ui";
 import styles from "./page.module.css";
 
 export default function Home() {
+  const [consentChecked, setConsentChecked] = useState(false);
+
   return (
     <PageContainer
       title="Clinical Intelligence & Decision Support"
       description="A modular healthcare intelligence and clinical decision-support research prototype investigating multimodal patient context, diagnostic assistance, and structured evidence synthesis for clinical research."
       breadcrumbs={[{ label: "Overview" }]}
       badge={
-        <div
-          className={styles.stageBadge}
-          role="status"
-          aria-label="Current implementation stage: Module 4 Application Shell"
-        >
-          <span className={styles.stageDot} aria-hidden="true" />
-          <span>Module 4: Application Shell</span>
-        </div>
+        <Badge variant="info" withDot>
+          Module 4: UI Primitives Active
+        </Badge>
       }
     >
       <div className={styles.container}>
@@ -56,130 +90,307 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Architectural Research Directions Section */}
+        {/* Architectural Research Directions Section — Demonstrating Card Composition */}
         <section aria-labelledby="pillars-heading">
           <div className={styles.sectionHeading}>
             <h2 id="pillars-heading" className={styles.sectionTitle}>
               Architectural Research Directions
             </h2>
             <p className={styles.sectionSubtitle}>
-              Core domain capabilities planned across the Arogya AI modular roadmap.
+              Core domain capabilities planned across the Arogya AI modular roadmap (rendered via Card primitives).
             </p>
           </div>
 
           <div className={styles.pillarsGrid}>
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <polyline points="10 9 9 9 8 9" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Multimodal Context</h3>
-              <p className={styles.pillarDescription}>
-                Longitudinal patient timelines integrating laboratory observations, clinical
-                encounter notes, and medical imaging into a cohesive investigative profile.
-              </p>
-            </article>
+            <Card as="article">
+              <CardHeader>
+                <div className={styles.pillarIconContainer} aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                </div>
+                <CardTitle as="h3">Multimodal Context</CardTitle>
+                <CardDescription>
+                  Longitudinal patient timelines integrating laboratory observations, clinical
+                  encounter notes, and medical imaging into a cohesive profile.
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Explainable Analytics</h3>
-              <p className={styles.pillarDescription}>
-                Feature-attribution explanations (SHAP) and saliency visualizations (Grad-CAM)
-                to preserve algorithmic uncertainty and prevent overconfident conclusions.
-              </p>
-            </article>
+            <Card as="article">
+              <CardHeader>
+                <div className={styles.pillarIconContainer} aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <CardTitle as="h3">Explainable Analytics</CardTitle>
+                <CardDescription>
+                  Feature-attribution explanations (SHAP) and saliency heatmaps (Grad-CAM)
+                  to preserve algorithmic uncertainty and prevent overconfident conclusions.
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Human-in-the-Loop</h3>
-              <p className={styles.pillarDescription}>
-                Interactive clinician review and critique interfaces where clinical users
-                retain absolute sovereignty over acceptance, refinement, or rejection of findings.
-              </p>
-            </article>
+            <Card as="article">
+              <CardHeader>
+                <div className={styles.pillarIconContainer} aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <CardTitle as="h3">Human-in-the-Loop</CardTitle>
+                <CardDescription>
+                  Interactive clinician review and critique interfaces where clinical users
+                  retain absolute sovereignty over acceptance, refinement, or rejection of findings.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </section>
 
-        {/* Technical Foundation & Semantic Token Primitives Showcase */}
-        <section className={styles.specCard} aria-labelledby="foundation-heading">
-          <div className={styles.specHeader}>
-            <div>
-              <h2 id="foundation-heading" className={styles.sectionTitle}>
-                Technical Foundation &amp; Design System
+        {/* Technical Foundation Specifications — Demonstrating Table Primitive */}
+        <section aria-labelledby="foundation-table-heading">
+          <div className={styles.sectionHeading}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
+              <h2 id="foundation-table-heading" className={styles.sectionTitle}>
+                Monorepo Technical Foundation
               </h2>
-              <p className={styles.sectionSubtitle}>
-                Verified monorepo architecture and semantic design token primitives.
-              </p>
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <Badge variant="success" withDot>Verified Stack</Badge>
+                <Badge variant="neutral">Next.js 16.4</Badge>
+              </div>
             </div>
-            <div className={styles.statusTags}>
-              <span className={styles.badgeSuccess}>App Shell Active</span>
-              <span className={styles.badgeInfo}>Phase 4.3</span>
-            </div>
+            <p className={styles.sectionSubtitle}>
+              Core architecture and component specifications verified in Modules 1–4 (rendered via Table primitive).
+            </p>
           </div>
 
-          <div className={styles.specGrid}>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Architecture</span>
-              <span className={styles.specValue}>Next.js + FastAPI Monorepo</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Application Shell</span>
-              <span className={styles.specValue}>Sidebar + Header + Breadcrumbs</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Type Safety</span>
-              <span className={styles.specValue}>TypeScript (Strict Mode)</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Design System</span>
-              <span className={styles.specValue}>Semantic CSS Tokens</span>
-            </div>
+          <Table>
+            <TableCaption>Arogya AI Monorepo Foundation &amp; Component Verification Matrix</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Architecture Layer</TableHead>
+                <TableHead>Primary Technology</TableHead>
+                <TableHead>Module</TableHead>
+                <TableHead>Readiness Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>Backend Platform</TableCell>
+                <TableCell>FastAPI, Pydantic v2, Python 3.14</TableCell>
+                <TableCell>Module 2</TableCell>
+                <TableCell><Badge variant="success">Verified (146 Tests)</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Database &amp; Persistence</TableCell>
+                <TableCell>PostgreSQL, SQLAlchemy 2.0, Alembic</TableCell>
+                <TableCell>Module 3</TableCell>
+                <TableCell><Badge variant="success">Verified &amp; Seeded</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Application Shell</TableCell>
+                <TableCell>Next.js 16 App Router, React 19</TableCell>
+                <TableCell>Module 4 (Phase 4.3)</TableCell>
+                <TableCell><Badge variant="success">Responsive Shell Active</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>UI Component Primitives</TableCell>
+                <TableCell>Vanilla CSS Tokens, Strict TypeScript</TableCell>
+                <TableCell>Module 4 (Phase 4.4)</TableCell>
+                <TableCell><Badge variant="info">Phase 4.4 Primitives Active</Badge></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </section>
+
+        {/* UI Component Primitives Showcase — Demonstrating Tabs, Dialog, Form, Buttons */}
+        <section aria-labelledby="primitives-showcase-heading">
+          <div className={styles.sectionHeading}>
+            <h2 id="primitives-showcase-heading" className={styles.sectionTitle}>
+              UI Component Primitives Showcase
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Interactive demonstration of the reusable component library built on Arogya AI design tokens.
+            </p>
           </div>
+
+          <Card>
+            <CardContent hasHeader={false}>
+              <Tabs defaultValue="actions">
+                <TabsList>
+                  <TabsTrigger value="actions">Buttons &amp; Badges</TabsTrigger>
+                  <TabsTrigger value="dialog">Dialog &amp; Forms</TabsTrigger>
+                  <TabsTrigger value="feedback">Notifications &amp; Loading</TabsTrigger>
+                </TabsList>
+
+                {/* Tab 1: Buttons & Badges */}
+                <TabsContent value="actions">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingTop: "var(--space-4)" }}>
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        Button Variants &amp; Sizes
+                      </h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "center" }}>
+                        <Button variant="primary" size="sm">Primary Small</Button>
+                        <Button variant="primary" size="md">Primary Medium</Button>
+                        <Button variant="secondary" size="md">Secondary</Button>
+                        <Button variant="outline" size="md">Outline</Button>
+                        <Button variant="ghost" size="md">Ghost</Button>
+                        <Button variant="danger" size="md">Danger</Button>
+                        <Button variant="primary" size="md" disabled>Disabled</Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        Status Badge Variants
+                      </h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "center" }}>
+                        <Badge variant="neutral" withDot>Neutral Status</Badge>
+                        <Badge variant="info" withDot>Research Evaluation</Badge>
+                        <Badge variant="success" withDot>Verified Baseline</Badge>
+                        <Badge variant="warning" withDot>Human Review Required</Badge>
+                        <Badge variant="danger" withDot>Critical Threshold</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab 2: Dialog & Forms */}
+                <TabsContent value="dialog">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingTop: "var(--space-4)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline">Open Research Dialog Preview</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Research Parameter Confirmation</DialogTitle>
+                            <DialogDescription>
+                              Demonstration of the accessible modal dialog primitive with Escape key handling and backdrop focus trapping.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogBody>
+                            <FormField
+                              label="Synthetic Cohort Filter"
+                              htmlFor="demo-filter"
+                              helperText="Enter synthetic cohort identifier or research study tag"
+                            >
+                              <Input id="demo-filter" placeholder="e.g., COHORT-SYNTH-2026" />
+                            </FormField>
+                            <div style={{ marginTop: "var(--space-4)" }}>
+                              <Checkbox
+                                id="demo-consent"
+                                label="Acknowledge Research Prototype Constraints"
+                                description="Confirms that outputs are for clinical evaluation only."
+                                checked={consentChecked}
+                                onChange={(e) => setConsentChecked(e.target.checked)}
+                              />
+                            </div>
+                          </DialogBody>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="secondary">Cancel</Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button variant="primary">Confirm Parameters</Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      <span style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)" }}>
+                        Press the button to test accessible dialog opening, backdrop dismiss, and keyboard navigation.
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--space-4)" }}>
+                      <FormField label="Sample Input (Standard)" htmlFor="sample-text" helperText="Standard text input field">
+                        <Input id="sample-text" placeholder="Enter alphanumeric identifier" />
+                      </FormField>
+
+                      <FormField label="Sample Input (Invalid State)" htmlFor="sample-err" error="Value exceeds allowable synthetic range">
+                        <Input id="sample-err" invalid defaultValue="INVALID_INPUT_99" />
+                      </FormField>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab 3: Notifications & Loading */}
+                <TabsContent value="feedback">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingTop: "var(--space-4)" }}>
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        Accessible Notifications (Toast)
+                      </h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                        <Toast
+                          title="Evaluation Protocol Loaded"
+                          description="Synthetic evaluation benchmark ready for algorithmic comparison."
+                          variant="info"
+                        />
+                        <Toast
+                          title="Human Review Triggered"
+                          description="Model entropy exceeded threshold; review flagged for qualified clinician."
+                          variant="warning"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        Loading Placeholders (Skeleton)
+                      </h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxWidth: "400px" }}>
+                        <Skeleton height={20} width="60%" />
+                        <Skeleton height={14} width="100%" />
+                        <Skeleton height={14} width="85%" />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </section>
 
         {/* Semantic Accessible Footer */}
