@@ -54,8 +54,8 @@ export default function Home() {
       description="A modular healthcare intelligence and clinical decision-support research prototype investigating multimodal patient context, diagnostic assistance, and structured evidence synthesis for clinical research."
       breadcrumbs={[{ label: "Overview" }]}
       badge={
-        <Badge variant="info" withDot>
-          Module 4: Route Architecture Active
+        <Badge variant="success" withDot>
+          Module 4: Quality &amp; Navigation Verified (Complete)
         </Badge>
       }
     >
@@ -254,7 +254,13 @@ export default function Home() {
                 <TableCell>Complete Route Architecture</TableCell>
                 <TableCell>Next.js 16 App Router (16 User-Facing Routes, 21 Modules)</TableCell>
                 <TableCell>Module 4 (Phase 4.6)</TableCell>
-                <TableCell><Badge variant="info">Phase 4.6 Active</Badge></TableCell>
+                <TableCell><Badge variant="success">Architecture Established</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Quality &amp; Navigation Verification</TableCell>
+                <TableCell>Responsive Drawer, Accessibility Regressions, 69 Tests</TableCell>
+                <TableCell>Module 4 (Phase 4.7)</TableCell>
+                <TableCell><Badge variant="success">Module 4 Complete (69 Tests)</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>

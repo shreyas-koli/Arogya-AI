@@ -17,11 +17,44 @@ function getPageContext(pathname: string): string {
   if (pathname.startsWith("/analysis")) {
     return "Clinical Workspace";
   }
+  if (pathname.startsWith("/security")) {
+    return "Security & File Intake";
+  }
+  if (pathname.startsWith("/imaging")) {
+    return "Chest X-ray Research";
+  }
+  if (pathname.startsWith("/agents")) {
+    return "Multi-Agent Orchestration";
+  }
+  if (pathname.startsWith("/knowledge")) {
+    return "Medical Knowledge & RAG";
+  }
+  if (pathname.startsWith("/safety")) {
+    return "Safety & Consensus Engine";
+  }
+  if (pathname.startsWith("/explainability")) {
+    return "Explainability & Evidence";
+  }
+  if (pathname.startsWith("/reviews")) {
+    return "Doctor Review & Feedback";
+  }
+  if (pathname.startsWith("/timeline")) {
+    return "Patient Longitudinal Timeline";
+  }
+  if (pathname.startsWith("/operations")) {
+    return "Hospital Operations Analytics";
+  }
   if (pathname.startsWith("/research")) {
     return "AI Research Lab";
   }
   if (pathname.startsWith("/admin")) {
     return "Administration & Governance";
+  }
+  if (pathname.startsWith("/monitoring")) {
+    return "System Telemetry & Monitoring";
+  }
+  if (pathname.startsWith("/readiness")) {
+    return "Readiness & Research Review";
   }
   return "Arogya AI";
 }

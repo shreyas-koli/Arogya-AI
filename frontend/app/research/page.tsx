@@ -34,14 +34,37 @@ export default function ResearchPage() {
           moduleName="Module 18: AI Research Lab & Model Evaluation"
           targetBlock="Block 5: Production Readiness & Verification"
           statusText="Planned for a future module"
-          description="The AI Research Lab is scheduled for implementation in Module 18, following model research (Modules 9–10) and agentic orchestration (Modules 11–14). Cross-architecture benchmarks, SHAP/Grad-CAM visualizers, and experiment registries are not yet connected to this frontend shell."
+          description="The AI Research Lab is scheduled for implementation in Module 18. This workbench serves as the primary visual evaluation and experimentation interface for internal research pipelines, specifically hosting the comparative benchmarks and calibration analysis for Module 9 (Tabular ML Research baseline models) as well as vision and multi-agent pipelines. Cross-architecture benchmarks, SHAP/Grad-CAM visualizers, and experiment registries are not yet connected to this frontend shell."
           verifiedFoundations={[
-            "Pipeline Dependency: Module 9 Tabular Risk Baseline (scikit-learn)",
-            "Vision Pipeline: Module 10 Chest X-ray Pipeline (PyTorch)",
+            "Pipeline Engine: Module 9 Tabular ML Research (scikit-learn / LightGBM baseline risk models)",
+            "Vision Pipeline: Module 10 Chest X-ray Pipeline (PyTorch / TorchXRayVision)",
             "State Machine: Module 11 Multi-Agent State Graph (LangGraph)",
-            "Explainability: Module 14 Evidence Synthesis & XAI Presentation",
+            "Explainability: Module 14 Evidence Synthesis & XAI Presentation (SHAP)",
           ]}
         />
+
+        {/* Tabular ML Research (Module 9) Integration Specification */}
+        <section className={styles.specCard} aria-labelledby="tabular-ml-relationship-heading">
+          <div className={styles.specHeader}>
+            <div>
+              <h2 id="tabular-ml-relationship-heading" className={styles.sectionTitle}>
+                Relationship to Tabular ML Research (Module 9)
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Architectural coupling between internal tabular machine learning and the research interface.
+              </p>
+            </div>
+            <div className={styles.statusTags}>
+              <span className={styles.badgeSuccess}>Block 3 &rarr; Block 5</span>
+              <span className={styles.badgeInfo}>Internal Engine &rarr; UI Bench</span>
+            </div>
+          </div>
+          <div className={styles.pillarDescription} style={{ padding: "0.5rem 0", lineHeight: 1.6 }}>
+            <p>
+              <strong>Module 9 (Tabular ML Research)</strong> develops the underlying risk prediction algorithms, feature engineering pipelines, and calibration models for structured clinical variables (vitals, laboratory panels, demographics). Because Module 9 operates as an algorithmic engine, it does not maintain an isolated end-user route. Instead, its model cards, validation metrics (AUROC, Brier score, calibration curves), and SHAP attribution values are surfaced directly here in <strong>/research (Module 18: AI Research Lab)</strong> for comparative experimentation, and in <strong>/analysis (Module 8: Clinical Workspace)</strong> for clinical case evaluation.
+            </p>
+          </div>
+        </section>
 
         {/* Planned Architecture Specifications */}
         <section aria-labelledby="research-capabilities-heading">
