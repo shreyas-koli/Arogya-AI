@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 5 (Overview Dashboard), Phase 5.3: Pending-Review Table & Analysis Status Indicators.<br/>
-> Delivered accessible analysis-run status indicators (`AnalysisStatusIndicator`), pending-review candidate table (`PendingReviewTable`), summary-card primitives, and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 104 unit tests across 25 test suites.
+> **Status:** Module 5 (Overview Dashboard), Phase 5.4: Dashboard Filters & Visualizations.<br/>
+> Delivered accessible UTC date-range and analysis lifecycle status filter controls (`DashboardFilterBar`), lightweight semantic distribution visualizations (`DashboardVisualizations`), analysis-run status indicators (`AnalysisStatusIndicator`), pending-review candidate table (`PendingReviewTable`), summary-card primitives, and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with dynamic filter responsiveness and honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 118 unit tests across 27 test suites.
 
 
 
@@ -47,7 +47,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 104 component, state, dashboard, and route unit tests across 25 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 118 component, state, dashboard, filter, visualization, and route unit tests across 27 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -346,6 +346,19 @@ frontend/
 │   │   ├── PageContainer.tsx   # Reusable page scaffold
 │   │   ├── PageContainer.module.css # Scoped styles for PageContainer
 │   │   └── Sidebar.tsx         # Primary grouped navigation sidebar & mobile drawer
+│   ├── dashboard/
+│   │   ├── index.ts            # Central barrel export for dashboard components
+│   │   ├── SummaryCard.tsx     # Generic metric card primitive & specialized domain cards
+│   │   ├── SummaryCard.module.css
+│   │   ├── RecentActivityFeed.tsx # Sanitized operational audit event feed
+│   │   ├── RecentActivityFeed.module.css
+│   │   ├── AnalysisStatusIndicator.tsx # Accessible lifecycle status badge
+│   │   ├── PendingReviewTable.tsx # Candidate review queue table
+│   │   ├── PendingReviewTable.module.css
+│   │   ├── DashboardFilterBar.tsx # Accessible UTC date and status filter controls
+│   │   ├── DashboardFilterBar.module.css
+│   │   ├── DashboardVisualizations.tsx # Status & model distribution charts with tables
+│   │   └── DashboardVisualizations.module.css
 │   ├── states/
 │   │   ├── index.ts            # Central barrel export for all state primitives
 │   │   ├── LoadingState.tsx    # Page/section/card skeleton loading state
@@ -378,6 +391,8 @@ frontend/
 │       ├── Tabs.module.css     # Scoped styles for Tabs
 │       ├── Toast.tsx           # Accessible notification toast
 │       └── Toast.module.css    # Scoped styles for Toast
+│   ├── types/
+│   │   └── dashboard.ts        # Typed TypeScript contracts matching Phase 5.1
 ├── docs/
 │   └── ROUTES.md               # Canonical 21-module route inventory & architecture
 ├── tests/
@@ -386,7 +401,8 @@ frontend/
 │   ├── components.test.tsx     # 24 unit tests covering UI primitives
 │   ├── dialog.test.tsx         # 6 focused unit tests for dialog keyboard & accessibility
 │   ├── states.test.tsx         # 13 unit tests covering all application states & 404
-│   └── routes.test.tsx         # 26 unit tests verifying 21-module route coverage, sidebar, drawer, and header
+│   ├── routes.test.tsx         # 26 unit tests verifying 21-module route coverage, sidebar, drawer, and header
+│   └── dashboard.test.tsx      # 49 unit tests covering dashboard cards, review table, filters & charts
 └── public/                     # Static public assets (SVG icons, logos)
 ```
 

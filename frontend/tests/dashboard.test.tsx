@@ -11,6 +11,9 @@ import {
   RecentActivityFeed,
   AnalysisStatusIndicator,
   PendingReviewTable,
+  DashboardFilterBar,
+  DashboardVisualizations,
+  DEFAULT_FILTER_STATE,
   formatUtcTimestamp,
 } from "../components/dashboard";
 import type {
@@ -641,8 +644,316 @@ describe("Overview Page Integration (app/page.tsx)", () => {
     assert.ok(html.includes("SYNTH-PAT-0001"));
     assert.ok(html.includes("Real-time clinical metrics are never fabricated"));
 
-    // Verify technical foundation table includes Module 5 Phase 5.3
+    // Verify technical foundation table includes Module 5 Phase 5.3 and Phase 5.4
     assert.ok(html.includes("Module 5 (Phase 5.3)"));
     assert.ok(html.includes("Phase 5.3 Active"));
+    assert.ok(html.includes("Module 5 (Phase 5.4)"));
+    assert.ok(html.includes("Phase 5.4 Active"));
+
+    // Verify presence of DashboardFilterBar and Visualizations in Overview
+    assert.ok(html.includes("Dashboard Filters"));
+    assert.ok(html.includes("Dashboard Visualizations"));
+    assert.ok(html.includes("Analysis Run Status Distribution"));
+    assert.ok(html.includes("Review Candidates by Model"));
+  });
+});
+
+describe("DashboardFilterBar Component (Phase 5.4)", () => {
+  it("renders filter controls with accessible labels, default state, and search landmark", () => {
+    const html = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={DEFAULT_FILTER_STATE}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+
+    assert.ok(html.includes('role="search"'));
+    assert.ok(html.includes('aria-labelledby="dashboard-filters-heading"'));
+    assert.ok(html.includes("Dashboard Filters"));
+    assert.ok(html.includes("All Records"));
+    assert.ok(html.includes("Start Date (UTC)"));
+    assert.ok(html.includes("End Date (UTC)"));
+    assert.ok(html.includes("Analysis Status"));
+    assert.ok(html.includes("Reset Filters"));
+    assert.ok(html.includes("Provenance:"));
+  });
+
+  it("calculates and displays active filter counts accurately", () => {
+    // 1 filter active
+    const html1 = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={{ startDate: "2026-01-01", endDate: "", status: "all" }}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+    assert.ok(html1.includes("1 Active"));
+
+    // 2 filters active
+    const html2 = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={{ startDate: "2026-01-01", endDate: "2026-01-15", status: "all" }}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+    assert.ok(html2.includes("2 Active"));
+
+    // 3 filters active
+    const html3 = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={{ startDate: "2026-01-01", endDate: "2026-01-15", status: "completed" }}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+    assert.ok(html3.includes("3 Active"));
+  });
+
+  it("detects reversed date ranges and renders accessible role='alert' validation message", () => {
+    const html = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={{ startDate: "2026-01-20", endDate: "2026-01-10", status: "all" }}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+
+    assert.ok(html.includes('role="alert"'));
+    assert.ok(html.includes("Invalid date range"));
+    assert.ok(html.includes("Start date (2026-01-20) must precede or equal end date (2026-01-10)"));
+    assert.ok(html.includes('aria-invalid="true"'));
+  });
+
+  it("renders options for all 5 canonical analysis lifecycle statuses and all option", () => {
+    const html = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={DEFAULT_FILTER_STATE}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+
+    assert.ok(html.includes('value="all"'));
+    assert.ok(html.includes('value="completed"'));
+    assert.ok(html.includes('value="running"'));
+    assert.ok(html.includes('value="abstained"'));
+    assert.ok(html.includes('value="queued"'));
+    assert.ok(html.includes('value="failed"'));
+  });
+
+  it("disables controls and reset button when disabled prop is set", () => {
+    const html = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={{ startDate: "2026-01-01", endDate: "2026-01-15", status: "completed" }}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+        disabled={true}
+      />
+    );
+
+    // Inputs should have disabled attribute
+    assert.ok(html.includes("disabled"));
+  });
+
+  it("disables reset button when no filters are active", () => {
+    const html = renderToStaticMarkup(
+      <DashboardFilterBar
+        filters={DEFAULT_FILTER_STATE}
+        onFilterChange={() => {}}
+        onReset={() => {}}
+      />
+    );
+
+    assert.ok(html.includes('aria-label="Reset all dashboard filters"'));
+    assert.ok(html.includes("disabled"));
+    assert.ok(html.includes('aria-disabled="true"'));
+  });
+});
+
+describe("DashboardVisualizations Component (Phase 5.4)", () => {
+  const analysisData: AnalysisSummary = {
+    total_runs: 4,
+    by_status: {
+      queued: 0,
+      running: 1,
+      completed: 2,
+      failed: 0,
+      abstained: 1,
+    },
+    active_models_observed: ["chexnet-v2-research", "clinical-bert-ner"],
+    generated_at: "2026-01-15T12:00:00Z",
+  };
+
+  const reviewData: PendingReviewQueueSummary = {
+    pending_count: 3,
+    items: [
+      {
+        run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000001",
+        patient_id: "SYNTH-PAT-0001",
+        encounter_id: "SYNTH-ENC-0001",
+        model_name: "chexnet-v2-research",
+        model_version: "2.1.0",
+        status: "completed",
+        abstained: false,
+        created_at: "2026-01-15T11:00:00Z",
+      },
+      {
+        run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000002",
+        patient_id: "SYNTH-PAT-0002",
+        encounter_id: "SYNTH-ENC-0002",
+        model_name: "clinical-bert-ner",
+        model_version: "1.4.0",
+        status: "abstained",
+        abstained: true,
+        created_at: "2026-01-15T11:30:00Z",
+      },
+      {
+        run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000003",
+        patient_id: "SYNTH-PAT-0003",
+        encounter_id: null,
+        model_name: "chexnet-v2-research",
+        model_version: "2.1.0",
+        status: "completed",
+        abstained: false,
+        created_at: "2026-01-15T12:00:00Z",
+      },
+    ],
+    generated_at: "2026-01-15T12:00:00Z",
+  };
+
+  it("renders both distribution charts with descriptive titles, badges, and percentage bars", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        analysis={analysisData}
+        reviews={reviewData}
+        filters={DEFAULT_FILTER_STATE}
+      />
+    );
+
+    // Section title and phase badge
+    assert.ok(html.includes("Dashboard Visualizations"));
+    assert.ok(html.includes("Phase 5.4 Active"));
+
+    // Chart 1: Analysis Run Status Distribution
+    assert.ok(html.includes("Analysis Run Status Distribution"));
+    assert.ok(html.includes("4 Total Runs"));
+    assert.ok(html.includes("Completed"));
+    assert.ok(html.includes("50%")); // 2 / 4
+    assert.ok(html.includes("Abstained (Safety Flag)"));
+    assert.ok(html.includes("25%")); // 1 / 4
+    assert.ok(html.includes("Running"));
+    assert.ok(html.includes("25%")); // 1 / 4
+
+    // Chart 2: Review Candidates by Model
+    assert.ok(html.includes("Review Candidates by Model"));
+    assert.ok(html.includes("3 Candidates"));
+    assert.ok(html.includes("chexnet-v2-research"));
+    assert.ok(html.includes("67%")); // 2 / 3
+    assert.ok(html.includes("clinical-bert-ner"));
+    assert.ok(html.includes("33%")); // 1 / 3
+  });
+
+  it("includes accessible data table alternatives with table headers and captions for screen readers", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        analysis={analysisData}
+        reviews={reviewData}
+      />
+    );
+
+    // Accessible Table for Chart 1
+    assert.ok(html.includes("Tabular distribution data for analysis run execution states (Accessible alternative)"));
+    assert.ok(html.includes("Execution State"));
+    assert.ok(html.includes("Cohort Share"));
+
+    // Accessible Table for Chart 2
+    assert.ok(html.includes("Tabular breakdown of candidate review items by research model"));
+    assert.ok(html.includes("Research Model"));
+    assert.ok(html.includes("Queue Share"));
+  });
+
+  it("renders explicit research safety notice documenting omitted diagnostic performance charts", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        analysis={analysisData}
+        reviews={reviewData}
+      />
+    );
+
+    assert.ok(html.includes('role="note"'));
+    assert.ok(html.includes("Research Prototype Visualization &amp; Clinical Safety Boundary:"));
+    assert.ok(html.includes("Diagnostic performance benchmarks (ROC curves, sensitivity/specificity, and calibration plots) are intentionally omitted"));
+    assert.ok(html.includes("Module 18 (AI Research Lab)"));
+  });
+
+  it("handles empty analysis run dataset gracefully with honest empty message", () => {
+    const emptyAnalysis: AnalysisSummary = {
+      total_runs: 0,
+      by_status: { queued: 0, running: 0, completed: 0, failed: 0, abstained: 0 },
+      active_models_observed: [],
+      generated_at: "2026-01-15T12:00:00Z",
+    };
+
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        analysis={emptyAnalysis}
+        reviews={reviewData}
+      />
+    );
+
+    assert.ok(html.includes("No Analysis Runs"));
+    assert.ok(html.includes("No pipeline runs match the current filter parameters."));
+  });
+
+  it("handles empty review candidates queue gracefully with honest empty message", () => {
+    const emptyReviews: PendingReviewQueueSummary = {
+      pending_count: 0,
+      items: [],
+      generated_at: "2026-01-15T12:00:00Z",
+    };
+
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        analysis={analysisData}
+        reviews={emptyReviews}
+      />
+    );
+
+    assert.ok(html.includes("No Review Candidates"));
+    assert.ok(html.includes("There are currently no review candidates matching the selected date or status criteria."));
+  });
+
+  it("renders accessible loading skeleton state with aria-busy='true'", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations status="loading" />
+    );
+
+    assert.ok(html.includes('aria-busy="true"'));
+    assert.ok(!html.includes("Analysis Run Status Distribution"));
+  });
+
+  it("renders truthful unavailable / integration pending state", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations status="unavailable" />
+    );
+
+    assert.ok(html.includes("Visualizations Pending Backend Integration"));
+    assert.ok(html.includes("Charts Pending"));
+    assert.ok(html.includes("Phase 5.5"));
+  });
+
+  it("renders error state with role='alert'", () => {
+    const html = renderToStaticMarkup(
+      <DashboardVisualizations
+        status="error"
+        statusMessage="Aggregated metrics cluster node unreachable"
+      />
+    );
+
+    assert.ok(html.includes('role="alert"'));
+    assert.ok(html.includes("Visualization Synchronization Error"));
+    assert.ok(html.includes("Aggregated metrics cluster node unreachable"));
   });
 });

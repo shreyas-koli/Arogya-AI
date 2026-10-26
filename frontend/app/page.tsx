@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
   Button,
@@ -49,7 +49,11 @@ import {
   ReviewQueueSummaryCard,
   RecentActivityFeed,
   PendingReviewTable,
+  DashboardFilterBar,
+  DashboardVisualizations,
   type CardStatus,
+  type DashboardFilterState,
+  DEFAULT_FILTER_STATE,
 } from "@/components/dashboard";
 import type {
   PatientSummary,
@@ -166,10 +170,128 @@ const DEMO_ACTIVITY: RecentActivitySummary = {
   generated_at: "2026-01-15T12:00:00Z",
 };
 
+/**
+ * Utility helper to determine if an ISO timestamp falls within UTC date boundaries.
+ * Handles boundary edge-cases and invalid dates safely.
+ */
+function isTimestampInDateRange(
+  isoTimestamp: string,
+  startDate?: string,
+  endDate?: string
+): boolean {
+  if (!isoTimestamp) return false;
+  try {
+    const time = new Date(isoTimestamp).getTime();
+    if (isNaN(time)) return false;
+
+    if (startDate) {
+      const startMs = new Date(`${startDate}T00:00:00.000Z`).getTime();
+      if (!isNaN(startMs) && time < startMs) {
+        return false;
+      }
+    }
+
+    if (endDate) {
+      const endMs = new Date(`${endDate}T23:59:59.999Z`).getTime();
+      if (!isNaN(endMs) && time > endMs) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function Home() {
   const [consentChecked, setConsentChecked] = useState(false);
   const [simulatedErrorResolved, setSimulatedErrorResolved] = useState(false);
   const [dashboardStatus, setDashboardStatus] = useState<CardStatus>("ready");
+  const [filters, setFilters] = useState<DashboardFilterState>(DEFAULT_FILTER_STATE);
+
+  // Dynamically filtered analysis summary (Module 5, Phase 5.4)
+  const filteredAnalysis = useMemo<AnalysisSummary>(() => {
+    const inDateRange = isTimestampInDateRange(
+      DEMO_ANALYSIS.generated_at,
+      filters.startDate,
+      filters.endDate
+    );
+
+    if (!inDateRange) {
+      return {
+        ...DEMO_ANALYSIS,
+        total_runs: 0,
+        by_status: {
+          queued: 0,
+          running: 0,
+          completed: 0,
+          failed: 0,
+          abstained: 0,
+        },
+      };
+    }
+
+    if (filters.status === "all") {
+      return DEMO_ANALYSIS;
+    }
+
+    const count = DEMO_ANALYSIS.by_status[filters.status] ?? 0;
+    return {
+      ...DEMO_ANALYSIS,
+      total_runs: count,
+      by_status: {
+        queued: filters.status === "queued" ? count : 0,
+        running: filters.status === "running" ? count : 0,
+        completed: filters.status === "completed" ? count : 0,
+        failed: filters.status === "failed" ? count : 0,
+        abstained: filters.status === "abstained" ? count : 0,
+      },
+    };
+  }, [filters]);
+
+  // Dynamically filtered review queue items (Module 5, Phase 5.4)
+  const filteredReviews = useMemo<PendingReviewQueueSummary>(() => {
+    const items = DEMO_REVIEWS.items.filter((item) => {
+      if (filters.status !== "all" && item.status !== filters.status) {
+        return false;
+      }
+      if (!isTimestampInDateRange(item.created_at, filters.startDate, filters.endDate)) {
+        return false;
+      }
+      return true;
+    });
+
+    return {
+      ...DEMO_REVIEWS,
+      pending_count: items.length,
+      items,
+    };
+  }, [filters]);
+
+  // Dynamically filtered activity feed (Module 5, Phase 5.4)
+  const filteredActivity = useMemo<RecentActivitySummary>(() => {
+    const activities = DEMO_ACTIVITY.activities.filter((act) => {
+      if (filters.status !== "all") {
+        if (
+          act.resource_type === "analysis_run" &&
+          act.event_type !== `analysis.${filters.status}`
+        ) {
+          return false;
+        }
+      }
+      if (!isTimestampInDateRange(act.timestamp, filters.startDate, filters.endDate)) {
+        return false;
+      }
+      return true;
+    });
+
+    return {
+      ...DEMO_ACTIVITY,
+      total_events: activities.length,
+      activities,
+    };
+  }, [filters]);
 
   return (
     <PageContainer
@@ -178,7 +300,7 @@ export default function Home() {
       breadcrumbs={[{ label: "Overview" }]}
       badge={
         <Badge variant="success" withDot>
-          Module 5: Review Table &amp; Indicators Active (Phase 5.3)
+          Module 5: Filters &amp; Visualizations Active (Phase 5.4)
         </Badge>
       }
     >
@@ -318,6 +440,17 @@ export default function Home() {
             </span>
           </div>
 
+          {/* Dashboard Filter Bar — Module 5 (Phase 5.4) */}
+          <div style={{ marginBottom: "var(--space-5)" }}>
+            <DashboardFilterBar
+              filters={filters}
+              onFilterChange={setFilters}
+              onReset={() => setFilters(DEFAULT_FILTER_STATE)}
+              disabled={dashboardStatus !== "ready"}
+              provenance="Synthetic seed cohort (Module 3)"
+            />
+          </div>
+
           {/* 4 Summary Domain Cards */}
           <div className={styles.cardsGrid} style={{ marginBottom: "var(--space-6)" }}>
             <PatientSummaryCard
@@ -331,21 +464,32 @@ export default function Home() {
               provenance="Synthetic care interactions (Module 3)"
             />
             <AnalysisSummaryCard
-              summary={dashboardStatus === "ready" ? DEMO_ANALYSIS : null}
+              summary={dashboardStatus === "ready" ? filteredAnalysis : null}
               status={dashboardStatus}
               provenance="Evaluated model records (Module 3)"
             />
             <ReviewQueueSummaryCard
-              summary={dashboardStatus === "ready" ? DEMO_REVIEWS : null}
+              summary={dashboardStatus === "ready" ? filteredReviews : null}
               status={dashboardStatus}
               provenance="Completed/abstained candidate runs"
+            />
+          </div>
+
+          {/* Dashboard Visualizations & Lifecycle Distributions — Module 5 (Phase 5.4) */}
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <DashboardVisualizations
+              analysis={dashboardStatus === "ready" ? filteredAnalysis : null}
+              reviews={dashboardStatus === "ready" ? filteredReviews : null}
+              filters={filters}
+              status={dashboardStatus}
+              provenance="Filtered synthetic seed cohort (Module 3)"
             />
           </div>
 
           {/* Pending Review Candidates Table — Module 5 (Phase 5.3) */}
           <div style={{ marginBottom: "var(--space-6)" }}>
             <PendingReviewTable
-              summary={dashboardStatus === "ready" ? DEMO_REVIEWS : null}
+              summary={dashboardStatus === "ready" ? filteredReviews : null}
               status={dashboardStatus}
               provenance="Completed/abstained candidate runs (Module 3)"
               maxItems={5}
@@ -354,7 +498,7 @@ export default function Home() {
 
           {/* Recent System Activity Feed */}
           <RecentActivityFeed
-            summary={dashboardStatus === "ready" ? DEMO_ACTIVITY : null}
+            summary={dashboardStatus === "ready" ? filteredActivity : null}
             status={dashboardStatus}
             provenance="Immutable audit log (Module 3)"
             maxItems={5}
@@ -537,6 +681,12 @@ export default function Home() {
                 <TableCell>Pending-Review Table &amp; Analysis Status Indicators</TableCell>
                 <TableCell>Module 5 (Phase 5.3)</TableCell>
                 <TableCell><Badge variant="success">Phase 5.3 Active</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Dashboard Filters &amp; Visualizations</TableCell>
+                <TableCell>UTC Date/Status Filters &amp; Accessible Lifecycle Distribution Charts</TableCell>
+                <TableCell>Module 5 (Phase 5.4)</TableCell>
+                <TableCell><Badge variant="success">Phase 5.4 Active</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>
