@@ -48,6 +48,7 @@ import {
   AnalysisSummaryCard,
   ReviewQueueSummaryCard,
   RecentActivityFeed,
+  PendingReviewTable,
   type CardStatus,
 } from "@/components/dashboard";
 import type {
@@ -177,7 +178,7 @@ export default function Home() {
       breadcrumbs={[{ label: "Overview" }]}
       badge={
         <Badge variant="success" withDot>
-          Module 5: Summary Cards &amp; Activity Active (Phase 5.2)
+          Module 5: Review Table &amp; Indicators Active (Phase 5.3)
         </Badge>
       }
     >
@@ -301,19 +302,19 @@ export default function Home() {
                 {dashboardStatus === "ready"
                   ? "Demonstration Provenance"
                   : dashboardStatus === "unavailable"
-                  ? "Phase 5.3 Scheduled"
+                  ? "Phase 5.5 Scheduled"
                   : "Simulated Fetch"}
               </Badge>
               <span style={{ color: "var(--color-text-secondary)" }}>
                 {dashboardStatus === "ready"
                   ? "Values below reflect seeded synthetic records (SYNTH-PAT-0001 cohort from Module 3). Real-time clinical metrics are never fabricated."
                   : dashboardStatus === "unavailable"
-                  ? "Live backend aggregation endpoint is pending Phase 5.3. Showing truthful unavailable state."
+                  ? "Live backend aggregation endpoint is pending Phase 5.5. Showing truthful unavailable state."
                   : "Rendering accessible skeleton placeholders simulating asynchronous metric retrieval."}
               </span>
             </div>
             <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--font-size-micro)" }}>
-              Contract: Phase 5.1 &bull; REST API: Phase 5.3
+              Contract: Phase 5.1 &bull; REST API: Phase 5.5
             </span>
           </div>
 
@@ -338,6 +339,16 @@ export default function Home() {
               summary={dashboardStatus === "ready" ? DEMO_REVIEWS : null}
               status={dashboardStatus}
               provenance="Completed/abstained candidate runs"
+            />
+          </div>
+
+          {/* Pending Review Candidates Table — Module 5 (Phase 5.3) */}
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <PendingReviewTable
+              summary={dashboardStatus === "ready" ? DEMO_REVIEWS : null}
+              status={dashboardStatus}
+              provenance="Completed/abstained candidate runs (Module 3)"
+              maxItems={5}
             />
           </div>
 
@@ -519,7 +530,13 @@ export default function Home() {
                 <TableCell>Overview Dashboard</TableCell>
                 <TableCell>Summary Cards &amp; Recent Activity (Phase 5.1 Contracts)</TableCell>
                 <TableCell>Module 5 (Phase 5.2)</TableCell>
-                <TableCell><Badge variant="success">Phase 5.2 UI Active</Badge></TableCell>
+                <TableCell><Badge variant="success">Phase 5.2 Active</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Review Candidates &amp; Status</TableCell>
+                <TableCell>Pending-Review Table &amp; Analysis Status Indicators</TableCell>
+                <TableCell>Module 5 (Phase 5.3)</TableCell>
+                <TableCell><Badge variant="success">Phase 5.3 Active</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>

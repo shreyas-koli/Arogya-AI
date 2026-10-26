@@ -2,8 +2,9 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 5 (Overview Dashboard), Phase 5.2: Summary Cards & Recent Activity.<br/>
-> Delivered accessible dashboard summary-card primitives, specialized domain cards (Patient Cohort, Clinical Encounters, AI Analysis Runs, Review Candidate Queue), and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 88 unit tests across 23 test suites.
+> **Status:** Module 5 (Overview Dashboard), Phase 5.3: Pending-Review Table & Analysis Status Indicators.<br/>
+> Delivered accessible analysis-run status indicators (`AnalysisStatusIndicator`), pending-review candidate table (`PendingReviewTable`), summary-card primitives, and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 104 unit tests across 25 test suites.
+
 
 
 ---
@@ -46,7 +47,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 88 component, state, dashboard, and route unit tests across 23 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 104 component, state, dashboard, and route unit tests across 25 suites using `node:test` and `tsx`. |
 
 ---
 
