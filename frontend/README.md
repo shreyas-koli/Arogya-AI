@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 5 (Overview Dashboard), Phase 5.4: Dashboard Filters & Visualizations.<br/>
-> Delivered accessible UTC date-range and analysis lifecycle status filter controls (`DashboardFilterBar`), lightweight semantic distribution visualizations (`DashboardVisualizations`), analysis-run status indicators (`AnalysisStatusIndicator`), pending-review candidate table (`PendingReviewTable`), summary-card primitives, and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with dynamic filter responsiveness and honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 118 unit tests across 27 test suites.
+> **Status:** Module 5 (Overview Dashboard), Phase 5.5: Dashboard API Aggregation & Integration.<br/>
+> Connected the Next.js Overview Dashboard (`/`) to the live backend aggregation REST API (`GET /api/v1/dashboard/overview`) using a typed client service (`frontend/services/dashboard.ts`). Implemented dynamic live database synchronization, parameter serialization, configurable timeout abortion, and honest lifecycle states (live database presentation, synthetic demo fallback, loading skeletons, empty results, and 503 database-unavailable error handling with retry and demo toggle). Verified with 124 automated unit tests across 28 test suites, zero TypeScript errors, zero ESLint warnings, and clean static compilation of all 19 routes.
 
 
 
@@ -47,7 +47,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 118 component, state, dashboard, filter, visualization, and route unit tests across 27 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 124 component, state, dashboard, filter, visualization, API client, and route unit tests across 28 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -391,6 +391,8 @@ frontend/
 │       ├── Tabs.module.css     # Scoped styles for Tabs
 │       ├── Toast.tsx           # Accessible notification toast
 │       └── Toast.module.css    # Scoped styles for Toast
+│   ├── services/
+│   │   └── dashboard.ts        # Typed API client for /api/v1/dashboard/overview
 │   ├── types/
 │   │   └── dashboard.ts        # Typed TypeScript contracts matching Phase 5.1
 ├── docs/
@@ -402,7 +404,7 @@ frontend/
 │   ├── dialog.test.tsx         # 6 focused unit tests for dialog keyboard & accessibility
 │   ├── states.test.tsx         # 13 unit tests covering all application states & 404
 │   ├── routes.test.tsx         # 26 unit tests verifying 21-module route coverage, sidebar, drawer, and header
-│   └── dashboard.test.tsx      # 49 unit tests covering dashboard cards, review table, filters & charts
+│   └── dashboard.test.tsx      # 55 unit tests covering dashboard cards, review table, filters, charts & API client
 └── public/                     # Static public assets (SVG icons, logos)
 ```
 

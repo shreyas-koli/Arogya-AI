@@ -24,7 +24,14 @@ import type {
   PendingReviewItem,
   RecentActivitySummary,
   AnalysisRunStatus,
+  DashboardOverviewResponse,
 } from "../types/dashboard";
+import {
+  fetchDashboardOverview,
+  buildDashboardOverviewUrl,
+  getApiBaseUrl,
+  DashboardApiError,
+} from "../services/dashboard";
 import Home from "../app/page";
 
 describe("SummaryCard Primitive", () => {
@@ -644,11 +651,17 @@ describe("Overview Page Integration (app/page.tsx)", () => {
     assert.ok(html.includes("SYNTH-PAT-0001"));
     assert.ok(html.includes("Real-time clinical metrics are never fabricated"));
 
-    // Verify technical foundation table includes Module 5 Phase 5.3 and Phase 5.4
+    // Verify technical foundation table includes Module 5 Phase 5.3, 5.4 and 5.5
     assert.ok(html.includes("Module 5 (Phase 5.3)"));
     assert.ok(html.includes("Phase 5.3 Active"));
     assert.ok(html.includes("Module 5 (Phase 5.4)"));
     assert.ok(html.includes("Phase 5.4 Active"));
+    assert.ok(html.includes("Module 5 (Phase 5.5)"));
+    assert.ok(html.includes("Phase 5.5 Active"));
+
+    // Verify Phase 5.5 controls and badge
+    assert.ok(html.includes("Live Database"));
+    assert.ok(html.includes("Module 5: Aggregation API Integrated (Phase 5.5)"));
 
     // Verify presence of DashboardFilterBar and Visualizations in Overview
     assert.ok(html.includes("Dashboard Filters"));
@@ -955,5 +968,170 @@ describe("DashboardVisualizations Component (Phase 5.4)", () => {
     assert.ok(html.includes('role="alert"'));
     assert.ok(html.includes("Visualization Synchronization Error"));
     assert.ok(html.includes("Aggregated metrics cluster node unreachable"));
+  });
+});
+
+describe("Dashboard API Client Service (Phase 5.5)", () => {
+  it("constructs canonical API URLs with and without query parameters", () => {
+    // Base URL resolution
+    const base = getApiBaseUrl();
+    assert.ok(base.startsWith("http"));
+
+    // Default without filters
+    const urlDefault = buildDashboardOverviewUrl();
+    assert.ok(urlDefault.endsWith("/dashboard/overview"));
+    assert.ok(!urlDefault.includes("?"));
+
+    // With dates and status
+    const urlFiltered = buildDashboardOverviewUrl({
+      startDate: "2026-01-01",
+      endDate: "2026-01-31",
+      status: "completed",
+    });
+    const parsed = new URL(urlFiltered);
+    assert.strictEqual(parsed.searchParams.get("start_date"), "2026-01-01");
+    assert.strictEqual(parsed.searchParams.get("end_date"), "2026-01-31");
+    assert.strictEqual(parsed.searchParams.get("status"), "completed");
+
+    // With status="all", status parameter should be omitted
+    const urlAll = buildDashboardOverviewUrl({ status: "all" });
+    const parsedAll = new URL(urlAll);
+    assert.strictEqual(parsedAll.searchParams.has("status"), false);
+  });
+
+  it("handles DashboardApiError classifications accurately", () => {
+    const unavailableErr = new DashboardApiError("Database unconfigured", 503, "SERVICE_UNAVAILABLE");
+    assert.strictEqual(unavailableErr.isUnavailable, true);
+    assert.strictEqual(unavailableErr.isValidationError, false);
+    assert.strictEqual(unavailableErr.status, 503);
+
+    const validationErr = new DashboardApiError("Invalid date range", 422, "VALIDATION_ERROR");
+    assert.strictEqual(validationErr.isValidationError, true);
+    assert.strictEqual(validationErr.isUnavailable, false);
+    assert.strictEqual(validationErr.status, 422);
+
+    const genericErr = new DashboardApiError("Network timeout", 0, "NETWORK_ERROR");
+    assert.strictEqual(genericErr.isUnavailable, false);
+    assert.strictEqual(genericErr.isValidationError, false);
+  });
+
+  it("parses successful JSON payload from API", async () => {
+    const mockPayload: DashboardOverviewResponse = {
+      patients: {
+        total_patients: 10,
+        synthetic_patients: 10,
+        research_cohort_patients: 0,
+        generated_at: "2026-01-15T12:00:00Z",
+      },
+      encounters: {
+        total_encounters: 8,
+        planned: 2,
+        in_progress: 1,
+        completed: 5,
+        cancelled: 0,
+        generated_at: "2026-01-15T12:00:00Z",
+      },
+      analysis: {
+        total_runs: 12,
+        by_status: { queued: 2, running: 1, completed: 8, failed: 1, abstained: 0 },
+        active_models_observed: ["chexnet-v2-research"],
+        generated_at: "2026-01-15T12:00:00Z",
+      },
+      reviews: {
+        pending_count: 2,
+        items: [],
+        generated_at: "2026-01-15T12:00:00Z",
+      },
+      recent_activity: {
+        total_events: 5,
+        activities: [],
+        generated_at: "2026-01-15T12:00:00Z",
+      },
+      generated_at: "2026-01-15T12:00:00Z",
+      environment: "testing",
+    };
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (async () => ({
+        ok: true,
+        status: 200,
+        json: async () => mockPayload,
+      })) as unknown as typeof fetch;
+
+      const data = await fetchDashboardOverview();
+      assert.strictEqual(data.environment, "testing");
+      assert.strictEqual(data.patients.total_patients, 10);
+      assert.strictEqual(data.analysis.total_runs, 12);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("handles HTTP 503 unavailable responses honestly without fabricating data", async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (async () => ({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        json: async () => ({
+          error: {
+            code: "SERVICE_UNAVAILABLE",
+            message: "Database persistence is unconfigured or unreachable.",
+          },
+        }),
+      })) as unknown as typeof fetch;
+
+      await assert.rejects(
+        async () => {
+          await fetchDashboardOverview();
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof DashboardApiError);
+          assert.strictEqual(err.status, 503);
+          assert.strictEqual(err.code, "SERVICE_UNAVAILABLE");
+          assert.strictEqual(err.isUnavailable, true);
+          assert.ok(err.message.includes("Database persistence is unconfigured"));
+          return true;
+        }
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("handles network connection failure with standard error code", async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (async () => {
+        throw new TypeError("Failed to fetch");
+      }) as unknown as typeof fetch;
+
+      await assert.rejects(
+        async () => {
+          await fetchDashboardOverview();
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof DashboardApiError);
+          assert.strictEqual(err.code, "NETWORK_ERROR");
+          assert.strictEqual(err.status, 0);
+          assert.ok(err.message.includes("Failed to connect to Arogya AI backend"));
+          return true;
+        }
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("renders Home with explicit initialMode variants", () => {
+    const htmlLoading = renderToStaticMarkup(<Home initialMode="loading" />);
+    assert.ok(htmlLoading.includes("Loading Skeleton"));
+    assert.ok(htmlLoading.includes('aria-busy="true"'));
+
+    const htmlUnavailable = renderToStaticMarkup(<Home initialMode="unavailable" />);
+    assert.ok(htmlUnavailable.includes("Integration Pending"));
+    assert.ok(htmlUnavailable.includes("Simulating truthful unavailable state"));
   });
 });

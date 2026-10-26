@@ -234,6 +234,14 @@ def get_db_session(
         session.close()
 
 
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI route dependency yielding an isolated request-scoped database session.
+
+    Delegates to get_db_session() using the configured application engine.
+    """
+    yield from get_db_session()
+
+
 def check_database_connection(
     engine: Engine | None = None,
     settings: Settings | None = None,

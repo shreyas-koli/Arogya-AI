@@ -8,6 +8,7 @@ from backend.app.repositories.analysis import AnalysisRepository
 from backend.app.repositories.asset import AssetRepository
 from backend.app.repositories.audit import AuditRepository
 from backend.app.repositories.base import BaseRepository
+from backend.app.repositories.dashboard import DashboardRepository
 from backend.app.repositories.encounter import EncounterRepository
 from backend.app.repositories.observation import ObservationRepository
 from backend.app.repositories.patient import PatientRepository
@@ -18,6 +19,7 @@ __all__ = [
     "AssetRepository",
     "AuditRepository",
     "BaseRepository",
+    "DashboardRepository",
     "EncounterRepository",
     "ObservationRepository",
     "PatientRepository",

@@ -5,6 +5,8 @@ attaching structured logging, request correlation tracing, and error handling.
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.health import router as health_router
 from backend.app.errors import register_exception_handlers
 from backend.app.logging import setup_logging
@@ -16,6 +18,10 @@ OPENAPI_TAGS = [
     {
         "name": "Health",
         "description": "Liveness and readiness probes for infrastructure monitoring and container orchestrators.",
+    },
+    {
+        "name": "Dashboard",
+        "description": "Overview metrics, candidate review triage, and operational activity aggregation.",
     },
 ]
 
@@ -55,12 +61,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # 4. Attach request tracing and correlation middleware
     app.add_middleware(RequestContextMiddleware)
 
-    # 5. Register application-wide exception handlers with safe error envelopes
+    # 5. Attach CORS middleware for frontend communication
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+    )
+
+    # 6. Register application-wide exception handlers with safe error envelopes
     register_exception_handlers(app)
 
-    # 6. Mount versioned API routes under the configured prefix
+    # 7. Mount versioned API routes under the configured prefix
     prefix = app_settings.api_prefix.rstrip("/")
     app.include_router(health_router, prefix=prefix)
+    app.include_router(dashboard_router, prefix=prefix)
 
     return app
 

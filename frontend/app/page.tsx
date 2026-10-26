@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
   Button,
@@ -55,12 +55,17 @@ import {
   type DashboardFilterState,
   DEFAULT_FILTER_STATE,
 } from "@/components/dashboard";
+import {
+  fetchDashboardOverview,
+  DashboardApiError,
+} from "@/services/dashboard";
 import type {
   PatientSummary,
   EncounterSummary,
   AnalysisSummary,
   PendingReviewQueueSummary,
   RecentActivitySummary,
+  DashboardOverviewResponse,
 } from "@/types/dashboard";
 import styles from "./page.module.css";
 
@@ -204,13 +209,66 @@ function isTimestampInDateRange(
   }
 }
 
-export default function Home() {
+export interface HomeProps {
+  initialMode?: "live" | "demo" | "unavailable" | "loading";
+}
+
+export default function Home({
+  initialMode = "live",
+}: HomeProps = {}) {
   const [consentChecked, setConsentChecked] = useState(false);
   const [simulatedErrorResolved, setSimulatedErrorResolved] = useState(false);
-  const [dashboardStatus, setDashboardStatus] = useState<CardStatus>("ready");
+  const [viewMode, setViewMode] = useState<"live" | "demo" | "unavailable" | "loading">(initialMode);
   const [filters, setFilters] = useState<DashboardFilterState>(DEFAULT_FILTER_STATE);
+  const [liveData, setLiveData] = useState<DashboardOverviewResponse | null>(null);
+  const [isFetchingLive, setIsFetchingLive] = useState(false);
+  const [liveError, setLiveError] = useState<DashboardApiError | Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
-  // Dynamically filtered analysis summary (Module 5, Phase 5.4)
+  // Live database aggregation fetch effect
+  useEffect(() => {
+    if (viewMode !== "live") {
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    async function loadData() {
+      setIsFetchingLive(true);
+      setLiveError(null);
+      try {
+        const result = await fetchDashboardOverview({
+          filters: {
+            startDate: filters.startDate || undefined,
+            endDate: filters.endDate || undefined,
+            status: filters.status,
+          },
+          signal: controller.signal,
+        });
+        if (!cancelled) {
+          setLiveData(result);
+          setIsFetchingLive(false);
+        }
+      } catch (err: unknown) {
+        if (cancelled) return;
+        setIsFetchingLive(false);
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        setLiveError(err instanceof Error ? err : new Error(String(err)));
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [viewMode, filters, refetchTrigger]);
+
+  // Dynamically filtered analysis summary (Synthetic Demo Fallback)
   const filteredAnalysis = useMemo<AnalysisSummary>(() => {
     const inDateRange = isTimestampInDateRange(
       DEMO_ANALYSIS.generated_at,
@@ -250,7 +308,7 @@ export default function Home() {
     };
   }, [filters]);
 
-  // Dynamically filtered review queue items (Module 5, Phase 5.4)
+  // Dynamically filtered review queue items (Synthetic Demo Fallback)
   const filteredReviews = useMemo<PendingReviewQueueSummary>(() => {
     const items = DEMO_REVIEWS.items.filter((item) => {
       if (filters.status !== "all" && item.status !== filters.status) {
@@ -269,7 +327,7 @@ export default function Home() {
     };
   }, [filters]);
 
-  // Dynamically filtered activity feed (Module 5, Phase 5.4)
+  // Dynamically filtered activity feed (Synthetic Demo Fallback)
   const filteredActivity = useMemo<RecentActivitySummary>(() => {
     const activities = DEMO_ACTIVITY.activities.filter((act) => {
       if (filters.status !== "all") {
@@ -293,6 +351,39 @@ export default function Home() {
     };
   }, [filters]);
 
+  // Compute presentation state and dataset bindings
+  let effectiveStatus: CardStatus = "ready";
+  if (viewMode === "loading") {
+    effectiveStatus = "loading";
+  } else if (viewMode === "unavailable") {
+    effectiveStatus = "unavailable";
+  } else if (viewMode === "live") {
+    if (isFetchingLive && !liveData) {
+      effectiveStatus = "loading";
+    } else if (liveError) {
+      effectiveStatus =
+        liveError instanceof DashboardApiError && liveError.isUnavailable
+          ? "unavailable"
+          : "error";
+    } else {
+      effectiveStatus = "ready";
+    }
+  } else {
+    // "demo"
+    effectiveStatus = "ready";
+  }
+
+  const currentPatients = viewMode === "live" && liveData ? liveData.patients : DEMO_PATIENTS;
+  const currentEncounters = viewMode === "live" && liveData ? liveData.encounters : DEMO_ENCOUNTERS;
+  const currentAnalysis = viewMode === "live" && liveData ? liveData.analysis : filteredAnalysis;
+  const currentReviews = viewMode === "live" && liveData ? liveData.reviews : filteredReviews;
+  const currentActivity = viewMode === "live" && liveData ? liveData.recent_activity : filteredActivity;
+
+  const currentProvenance =
+    viewMode === "live"
+      ? "Live PostgreSQL Aggregation (Phase 5.5)"
+      : "Synthetic seed cohort (Module 3)";
+
   return (
     <PageContainer
       title="Clinical Intelligence & Decision Support"
@@ -300,7 +391,7 @@ export default function Home() {
       breadcrumbs={[{ label: "Overview" }]}
       badge={
         <Badge variant="success" withDot>
-          Module 5: Filters &amp; Visualizations Active (Phase 5.4)
+          Module 5: Aggregation API Integrated (Phase 5.5)
         </Badge>
       }
     >
@@ -377,25 +468,36 @@ export default function Home() {
                 </span>
                 <Button
                   size="sm"
-                  variant={dashboardStatus === "ready" ? "primary" : "outline"}
-                  onClick={() => setDashboardStatus("ready")}
-                  aria-pressed={dashboardStatus === "ready"}
+                  variant={viewMode === "live" ? "primary" : "outline"}
+                  onClick={() => {
+                    setViewMode("live");
+                    setRefetchTrigger((p) => p + 1);
+                  }}
+                  aria-pressed={viewMode === "live"}
+                >
+                  Live Database
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === "demo" ? "primary" : "outline"}
+                  onClick={() => setViewMode("demo")}
+                  aria-pressed={viewMode === "demo"}
                 >
                   Synthetic Demo
                 </Button>
                 <Button
                   size="sm"
-                  variant={dashboardStatus === "unavailable" ? "primary" : "outline"}
-                  onClick={() => setDashboardStatus("unavailable")}
-                  aria-pressed={dashboardStatus === "unavailable"}
+                  variant={viewMode === "unavailable" ? "primary" : "outline"}
+                  onClick={() => setViewMode("unavailable")}
+                  aria-pressed={viewMode === "unavailable"}
                 >
                   Integration Pending
                 </Button>
                 <Button
                   size="sm"
-                  variant={dashboardStatus === "loading" ? "primary" : "outline"}
-                  onClick={() => setDashboardStatus("loading")}
-                  aria-pressed={dashboardStatus === "loading"}
+                  variant={viewMode === "loading" ? "primary" : "outline"}
+                  onClick={() => setViewMode("loading")}
+                  aria-pressed={viewMode === "loading"}
                 >
                   Loading Skeleton
                 </Button>
@@ -420,18 +522,48 @@ export default function Home() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <Badge variant={dashboardStatus === "ready" ? "info" : "neutral"}>
-                {dashboardStatus === "ready"
+              <Badge
+                variant={
+                  viewMode === "live"
+                    ? liveError
+                      ? "danger"
+                      : isFetchingLive
+                      ? "warning"
+                      : liveData
+                      ? "success"
+                      : "info"
+                    : viewMode === "demo"
+                    ? "info"
+                    : "neutral"
+                }
+              >
+                {viewMode === "live"
+                  ? liveError
+                    ? "Live Aggregation Error"
+                    : isFetchingLive
+                    ? "Connecting to Live API"
+                    : liveData
+                    ? "Live Database (Phase 5.5)"
+                    : "Demonstration Provenance"
+                  : viewMode === "demo"
                   ? "Demonstration Provenance"
-                  : dashboardStatus === "unavailable"
+                  : viewMode === "unavailable"
                   ? "Phase 5.5 Scheduled"
                   : "Simulated Fetch"}
               </Badge>
               <span style={{ color: "var(--color-text-secondary)" }}>
-                {dashboardStatus === "ready"
+                {viewMode === "live"
+                  ? liveError
+                    ? `Live aggregation failed (${liveError.message}). Real-time clinical metrics are never fabricated.`
+                    : isFetchingLive
+                    ? "Querying GET /api/v1/dashboard/overview to aggregate real-time database records..."
+                    : liveData
+                    ? "Connected to backend API (GET /api/v1/dashboard/overview). Values reflect live database records."
+                    : "Values below reflect seeded synthetic records (SYNTH-PAT-0001 cohort from Module 3). Real-time clinical metrics are never fabricated."
+                  : viewMode === "demo"
                   ? "Values below reflect seeded synthetic records (SYNTH-PAT-0001 cohort from Module 3). Real-time clinical metrics are never fabricated."
-                  : dashboardStatus === "unavailable"
-                  ? "Live backend aggregation endpoint is pending Phase 5.5. Showing truthful unavailable state."
+                  : viewMode === "unavailable"
+                  ? "Simulating truthful unavailable state for integration testing."
                   : "Rendering accessible skeleton placeholders simulating asynchronous metric retrieval."}
               </span>
             </div>
@@ -440,67 +572,128 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Dashboard Filter Bar — Module 5 (Phase 5.4) */}
+          {/* Honest Error State Notification for Live Mode */}
+          {viewMode === "live" && liveError && (
+            <div style={{ marginBottom: "var(--space-5)" }}>
+              <ErrorState
+                title={
+                  liveError instanceof DashboardApiError && liveError.isUnavailable
+                    ? "Database Persistence Unavailable (HTTP 503)"
+                    : "Dashboard API Connection Failure"
+                }
+                message={liveError.message}
+                errorCode={
+                  liveError instanceof DashboardApiError ? liveError.code : "ERR_API_FETCH"
+                }
+                onRetry={() => setRefetchTrigger((p) => p + 1)}
+                retryLabel="Retry Live Request"
+                secondaryAction={
+                  <Button size="sm" variant="outline" onClick={() => setViewMode("demo")}>
+                    Switch to Synthetic Demo
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
+          {/* Dashboard Filter Bar — Module 5 (Phase 5.4 - 5.5) */}
           <div style={{ marginBottom: "var(--space-5)" }}>
             <DashboardFilterBar
               filters={filters}
               onFilterChange={setFilters}
               onReset={() => setFilters(DEFAULT_FILTER_STATE)}
-              disabled={dashboardStatus !== "ready"}
-              provenance="Synthetic seed cohort (Module 3)"
+              disabled={effectiveStatus === "loading" || (viewMode === "live" && isFetchingLive)}
+              provenance={
+                viewMode === "live"
+                  ? "Live database query (Phase 5.5)"
+                  : "Synthetic seed cohort (Module 3)"
+              }
             />
           </div>
+
+          {/* Empty Results State for Live Mode */}
+          {viewMode === "live" && liveData && liveData.analysis.total_runs === 0 && (
+            <div style={{ marginBottom: "var(--space-5)" }}>
+              <EmptyState
+                preset="runs"
+                title="No Records Found for Filter Criteria"
+                description={`No analysis runs or review candidates match the active filters (status: ${filters.status}, date range: ${filters.startDate || 'start'} to ${filters.endDate || 'end'}).`}
+                action={{
+                  label: "Reset Filters",
+                  onClick: () => setFilters(DEFAULT_FILTER_STATE),
+                  variant: "secondary",
+                }}
+                notice="Live query completed successfully with 0 matching rows."
+              />
+            </div>
+          )}
 
           {/* 4 Summary Domain Cards */}
           <div className={styles.cardsGrid} style={{ marginBottom: "var(--space-6)" }}>
             <PatientSummaryCard
-              summary={dashboardStatus === "ready" ? DEMO_PATIENTS : null}
-              status={dashboardStatus}
-              provenance="Synthetic seed cohort (Module 3)"
+              summary={effectiveStatus === "ready" ? currentPatients : null}
+              status={effectiveStatus}
+              provenance={currentProvenance}
             />
             <EncounterSummaryCard
-              summary={dashboardStatus === "ready" ? DEMO_ENCOUNTERS : null}
-              status={dashboardStatus}
-              provenance="Synthetic care interactions (Module 3)"
+              summary={effectiveStatus === "ready" ? currentEncounters : null}
+              status={effectiveStatus}
+              provenance={currentProvenance}
             />
             <AnalysisSummaryCard
-              summary={dashboardStatus === "ready" ? filteredAnalysis : null}
-              status={dashboardStatus}
-              provenance="Evaluated model records (Module 3)"
+              summary={effectiveStatus === "ready" ? currentAnalysis : null}
+              status={effectiveStatus}
+              provenance={currentProvenance}
             />
             <ReviewQueueSummaryCard
-              summary={dashboardStatus === "ready" ? filteredReviews : null}
-              status={dashboardStatus}
-              provenance="Completed/abstained candidate runs"
+              summary={effectiveStatus === "ready" ? currentReviews : null}
+              status={effectiveStatus}
+              provenance={
+                viewMode === "live"
+                  ? "Live completed/abstained candidate runs"
+                  : "Completed/abstained candidate runs"
+              }
             />
           </div>
 
           {/* Dashboard Visualizations & Lifecycle Distributions — Module 5 (Phase 5.4) */}
           <div style={{ marginBottom: "var(--space-6)" }}>
             <DashboardVisualizations
-              analysis={dashboardStatus === "ready" ? filteredAnalysis : null}
-              reviews={dashboardStatus === "ready" ? filteredReviews : null}
+              analysis={effectiveStatus === "ready" ? currentAnalysis : null}
+              reviews={effectiveStatus === "ready" ? currentReviews : null}
               filters={filters}
-              status={dashboardStatus}
-              provenance="Filtered synthetic seed cohort (Module 3)"
+              status={effectiveStatus}
+              provenance={
+                viewMode === "live"
+                  ? "Filtered live database records (Phase 5.5)"
+                  : "Filtered synthetic seed cohort (Module 3)"
+              }
             />
           </div>
 
           {/* Pending Review Candidates Table — Module 5 (Phase 5.3) */}
           <div style={{ marginBottom: "var(--space-6)" }}>
             <PendingReviewTable
-              summary={dashboardStatus === "ready" ? filteredReviews : null}
-              status={dashboardStatus}
-              provenance="Completed/abstained candidate runs (Module 3)"
+              summary={effectiveStatus === "ready" ? currentReviews : null}
+              status={effectiveStatus}
+              provenance={
+                viewMode === "live"
+                  ? "Live completed/abstained candidate runs (Phase 5.5)"
+                  : "Completed/abstained candidate runs (Module 3)"
+              }
               maxItems={5}
             />
           </div>
 
           {/* Recent System Activity Feed */}
           <RecentActivityFeed
-            summary={dashboardStatus === "ready" ? filteredActivity : null}
-            status={dashboardStatus}
-            provenance="Immutable audit log (Module 3)"
+            summary={effectiveStatus === "ready" ? currentActivity : null}
+            status={effectiveStatus}
+            provenance={
+              viewMode === "live"
+                ? "Live audit events from persistence (Phase 5.5)"
+                : "Immutable audit log (Module 3)"
+            }
             maxItems={5}
           />
         </section>
@@ -687,6 +880,12 @@ export default function Home() {
                 <TableCell>UTC Date/Status Filters &amp; Accessible Lifecycle Distribution Charts</TableCell>
                 <TableCell>Module 5 (Phase 5.4)</TableCell>
                 <TableCell><Badge variant="success">Phase 5.4 Active</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Dashboard API Aggregation</TableCell>
+                <TableCell>FastAPI Aggregation Endpoint, PostgreSQL Aggregation &amp; Next.js Client</TableCell>
+                <TableCell>Module 5 (Phase 5.5)</TableCell>
+                <TableCell><Badge variant="success">Phase 5.5 Active</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>

@@ -178,6 +178,27 @@ async def app_exception_handler(
     )
 
 
+async def database_unavailable_handler(
+    request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    """Handle database configuration or connectivity failures safely with HTTP 503."""
+    request_id = _resolve_request_id(request)
+    logger.warning("Database unavailable: %s", exc)
+
+    payload = ErrorPayload(
+        code="SERVICE_UNAVAILABLE",
+        message="Database persistence is unconfigured or unavailable.",
+        request_id=request_id,
+    )
+    headers = {"X-Request-ID": request_id} if request_id else None
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=ErrorResponse(error=payload).model_dump(exclude_none=True),
+        headers=headers,
+    )
+
+
 async def unhandled_exception_handler(
     request: Request,
     exc: Exception,
@@ -201,7 +222,11 @@ async def unhandled_exception_handler(
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all application-wide exception handlers on the FastAPI instance."""
+    from backend.app.db.session import DatabaseConfigurationError, DatabaseConnectionError
+
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(AppException, app_exception_handler)
+    app.add_exception_handler(DatabaseConfigurationError, database_unavailable_handler)
+    app.add_exception_handler(DatabaseConnectionError, database_unavailable_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

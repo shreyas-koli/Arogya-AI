@@ -7,6 +7,7 @@ operational audit logging, and domain exception classes.
 
 from backend.app.services.audit import AuditService
 from backend.app.services.clinical import ClinicalService
+from backend.app.services.dashboard import DashboardService
 from backend.app.services.exceptions import (
     ConsistencyError,
     DomainError,
@@ -20,6 +21,7 @@ __all__ = [
     "AuditService",
     "ClinicalService",
     "ConsistencyError",
+    "DashboardService",
     "DomainError",
     "DomainValidationError",
     "DuplicateEntityError",
