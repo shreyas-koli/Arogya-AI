@@ -173,6 +173,6 @@ class DashboardOverviewResponse(BaseSchema):
 ## 5. Frontend Alignment & Future Integration
 
 - **TypeScript Definitions:** Maintained in [`frontend/types/dashboard.ts`](file:///C:/_code/Projects/Arogya-AI/frontend/types/dashboard.ts) matching Python Pydantic models.
-- **Phase 5.2 Integration:** `DashboardService` and aggregation queries will implement the database operations to populate these contracts.
-- **Phase 5.3 Integration:** FastAPI router mounted under `/api/v1/dashboard/overview` will expose `DashboardOverviewResponse` via OpenAPI documentation.
-- **Phase 5.4+ Integration:** Frontend dashboard state and client widgets will bind to these contracts with proper error boundaries and loading skeletons.
+- **Phase 5.2 Implementation (Summary Cards & Recent Activity):** Delivered reusable UI components in [`frontend/components/dashboard/`](file:///C:/_code/Projects/Arogya-AI/frontend/components/dashboard/) (`SummaryCard`, `PatientSummaryCard`, `EncounterSummaryCard`, `AnalysisSummaryCard`, `ReviewQueueSummaryCard`, `RecentActivityFeed`). Integrated into `/` overview page with truthful unavailable and synthetic demonstration states. See [`docs/dashboard/SUMMARY_CARDS_AND_ACTIVITY.md`](file:///C:/_code/Projects/Arogya-AI/docs/dashboard/SUMMARY_CARDS_AND_ACTIVITY.md).
+- **Roadmap Phase Reconciliation:** The Phase 5.1 completion report proposed backend aggregation in 5.2; however, the canonical roadmap assigned Phase 5.2 to frontend Summary Cards & Recent Activity UI components. Backend aggregation queries and HTTP routes are scheduled for Phase 5.3.
+- **Phase 5.3 Integration:** Backend `DashboardService`, aggregation queries, and FastAPI router mounted under `/api/v1/dashboard/overview` will expose `DashboardOverviewResponse` via OpenAPI documentation and connect live data to the frontend dashboard.

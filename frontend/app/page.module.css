@@ -259,6 +259,15 @@
 }
 
 /* -----------------------------------------------------------------------------
+   Dashboard Metrics Summary Grid
+   ----------------------------------------------------------------------------- */
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+
+/* -----------------------------------------------------------------------------
    Responsive Breakpoints
    ----------------------------------------------------------------------------- */
 @media (max-width: 768px) {
@@ -268,6 +277,10 @@
   }
 
   .pillarsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardsGrid {
     grid-template-columns: 1fr;
   }
 

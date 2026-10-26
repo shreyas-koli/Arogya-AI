@@ -2,8 +2,9 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.7: Frontend Quality & Navigation Verification (Module 4 Complete).<br/>
-> Verified frontend quality, route architecture, responsive layouts, accessibility regressions, and build reliability across all 21 canonical roadmap modules. Delivered 16 direct-loadable user-facing routes with honest `PlannedFeatureState` presentations, responsive off-canvas drawer navigation, dialog focus containment and restoration, and automated verification with 69 unit tests across 19 suites.
+> **Status:** Module 5 (Overview Dashboard), Phase 5.2: Summary Cards & Recent Activity.<br/>
+> Delivered accessible dashboard summary-card primitives, specialized domain cards (Patient Cohort, Clinical Encounters, AI Analysis Runs, Review Candidate Queue), and sanitized chronological Recent Activity Feed consuming Phase 5.1 data contracts. Integrated into `/` overview page with honest lifecycle states (synthetic demo provenance backed by Module 3 seed data, truthful integration pending, and loading skeletons). Automated verification covers 88 unit tests across 23 test suites.
+
 
 ---
 
@@ -45,7 +46,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 69 component, state, and route unit tests across 19 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 88 component, state, dashboard, and route unit tests across 23 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -253,7 +254,7 @@ All navigation links resolve to valid, statically prerendered routes inside the 
 
 | Navigation Item | Route | Roadmap Module | Purpose | Status in Shell |
 | :--- | :--- | :--- | :--- | :--- |
-| **Overview** | `/` | Module 4 | Clinical intelligence overview & component showcase | Active Shell & Primitives |
+| **Overview** | `/` | Module 5 | Clinical intelligence overview, summary cards & recent activity | Active Overview UI (Phase 5.2) |
 | **Patient Intelligence** | `/patients` | Module 6 | Longitudinal timelines, encounter history, vitals | Planned Roadmap Preview |
 | **Clinical Workspace** | `/analysis` | Module 8 | Multimodal case intake, triage, and review | Planned Roadmap Preview |
 | **AI Research Lab** | `/research` | Module 18 / M9–14 | Model evaluation, SHAP, and Grad-CAM benches | Planned Roadmap Preview |

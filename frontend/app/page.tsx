@@ -42,11 +42,133 @@ import {
   ErrorState,
   AccessDeniedState,
 } from "@/components/states";
+import {
+  PatientSummaryCard,
+  EncounterSummaryCard,
+  AnalysisSummaryCard,
+  ReviewQueueSummaryCard,
+  RecentActivityFeed,
+  type CardStatus,
+} from "@/components/dashboard";
+import type {
+  PatientSummary,
+  EncounterSummary,
+  AnalysisSummary,
+  PendingReviewQueueSummary,
+  RecentActivitySummary,
+} from "@/types/dashboard";
 import styles from "./page.module.css";
+
+// ---------------------------------------------------------------------------
+// Documented Synthetic Demonstration Datasets (Module 3 Seed Cohort)
+// Zero-PHI Guaranteed: Values strictly correspond to Module 3 seed definitions.
+// ---------------------------------------------------------------------------
+const DEMO_PATIENTS: PatientSummary = {
+  total_patients: 10,
+  synthetic_patients: 10,
+  research_cohort_patients: 0,
+  generated_at: "2026-01-10T08:00:00Z",
+};
+
+const DEMO_ENCOUNTERS: EncounterSummary = {
+  total_encounters: 4,
+  planned: 1,
+  in_progress: 1,
+  completed: 2,
+  cancelled: 0,
+  reporting_period_start: "2026-01-01T00:00:00Z",
+  reporting_period_end: "2026-01-31T23:59:59Z",
+  generated_at: "2026-01-15T10:00:00Z",
+};
+
+const DEMO_ANALYSIS: AnalysisSummary = {
+  total_runs: 4,
+  by_status: {
+    queued: 0,
+    running: 1,
+    completed: 2,
+    failed: 0,
+    abstained: 1,
+  },
+  active_models_observed: ["chexnet-v2-research", "clinical-bert-ner"],
+  generated_at: "2026-01-15T12:00:00Z",
+};
+
+const DEMO_REVIEWS: PendingReviewQueueSummary = {
+  pending_count: 3,
+  items: [
+    {
+      run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000001",
+      patient_id: "SYNTH-PAT-0001",
+      encounter_id: "SYNTH-ENC-0001",
+      model_name: "chexnet-v2-research",
+      model_version: "2.1.0",
+      status: "completed",
+      abstained: false,
+      created_at: "2026-01-15T11:00:00Z",
+    },
+    {
+      run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000002",
+      patient_id: "SYNTH-PAT-0002",
+      encounter_id: "SYNTH-ENC-0002",
+      model_name: "clinical-bert-ner",
+      model_version: "1.4.0",
+      status: "abstained",
+      abstained: true,
+      created_at: "2026-01-15T11:30:00Z",
+    },
+    {
+      run_id: "7b0a88df-2b48-4cb3-9111-c9fe00000003",
+      patient_id: "SYNTH-PAT-0003",
+      encounter_id: null,
+      model_name: "chexnet-v2-research",
+      model_version: "2.1.0",
+      status: "completed",
+      abstained: false,
+      created_at: "2026-01-15T12:00:00Z",
+    },
+  ],
+  generated_at: "2026-01-15T12:00:00Z",
+};
+
+const DEMO_ACTIVITY: RecentActivitySummary = {
+  total_events: 3,
+  activities: [
+    {
+      id: "evt-003",
+      event_type: "analysis.abstained",
+      action: "execute",
+      resource_type: "analysis_run",
+      resource_id: "7b0a88df-2b48-4cb3-9111-c9fe00000002",
+      description: "Model safety filter triggered; abstention logged for clinician review",
+      timestamp: "2026-01-15T11:30:00Z",
+    },
+    {
+      id: "evt-002",
+      event_type: "analysis.completed",
+      action: "execute",
+      resource_type: "analysis_run",
+      resource_id: "7b0a88df-2b48-4cb3-9111-c9fe00000001",
+      description: "Automated feature-attribution inference completed",
+      timestamp: "2026-01-15T11:00:00Z",
+    },
+    {
+      id: "evt-001",
+      event_type: "encounter.completed",
+      action: "update",
+      resource_type: "encounter",
+      resource_id: "SYNTH-ENC-0001",
+      description: "Clinical encounter marked completed for synthetic cohort",
+      timestamp: "2026-01-15T10:00:00Z",
+    },
+  ],
+  generated_at: "2026-01-15T12:00:00Z",
+};
 
 export default function Home() {
   const [consentChecked, setConsentChecked] = useState(false);
   const [simulatedErrorResolved, setSimulatedErrorResolved] = useState(false);
+  const [dashboardStatus, setDashboardStatus] = useState<CardStatus>("ready");
 
   return (
     <PageContainer
@@ -55,7 +177,7 @@ export default function Home() {
       breadcrumbs={[{ label: "Overview" }]}
       badge={
         <Badge variant="success" withDot>
-          Module 4: Quality &amp; Navigation Verified (Complete)
+          Module 5: Summary Cards &amp; Activity Active (Phase 5.2)
         </Badge>
       }
     >
@@ -95,6 +217,137 @@ export default function Home() {
               professionals.
             </p>
           </div>
+        </section>
+
+        {/* Overview Dashboard Metrics & Recent Activity — Module 5 (Phase 5.2) */}
+        <section aria-labelledby="overview-metrics-heading">
+          <div className={styles.sectionHeading}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
+              <div>
+                <h2 id="overview-metrics-heading" className={styles.sectionTitle}>
+                  Clinical Overview &amp; Research Metrics
+                </h2>
+                <p className={styles.sectionSubtitle}>
+                  Overview summary cards and chronological operational activity consuming Phase 5.1 data contracts.
+                </p>
+              </div>
+
+              {/* Lifecycle State Inspection Controls */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  flexWrap: "wrap",
+                }}
+                role="group"
+                aria-label="Dashboard presentation state switcher"
+              >
+                <span
+                  style={{
+                    fontSize: "var(--font-size-body-sm)",
+                    color: "var(--color-text-muted)",
+                    marginRight: "var(--space-1)",
+                  }}
+                >
+                  View Mode:
+                </span>
+                <Button
+                  size="sm"
+                  variant={dashboardStatus === "ready" ? "primary" : "outline"}
+                  onClick={() => setDashboardStatus("ready")}
+                  aria-pressed={dashboardStatus === "ready"}
+                >
+                  Synthetic Demo
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dashboardStatus === "unavailable" ? "primary" : "outline"}
+                  onClick={() => setDashboardStatus("unavailable")}
+                  aria-pressed={dashboardStatus === "unavailable"}
+                >
+                  Integration Pending
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dashboardStatus === "loading" ? "primary" : "outline"}
+                  onClick={() => setDashboardStatus("loading")}
+                  aria-pressed={dashboardStatus === "loading"}
+                >
+                  Loading Skeleton
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Truthful Provenance Banner */}
+          <div
+            style={{
+              padding: "var(--space-3) var(--space-4)",
+              marginBottom: "var(--space-4)",
+              backgroundColor: "var(--color-bg-subtle)",
+              border: "1px solid var(--color-border-subtle)",
+              borderRadius: "var(--radius-md)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "var(--space-2)",
+              fontSize: "var(--font-size-body-sm)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <Badge variant={dashboardStatus === "ready" ? "info" : "neutral"}>
+                {dashboardStatus === "ready"
+                  ? "Demonstration Provenance"
+                  : dashboardStatus === "unavailable"
+                  ? "Phase 5.3 Scheduled"
+                  : "Simulated Fetch"}
+              </Badge>
+              <span style={{ color: "var(--color-text-secondary)" }}>
+                {dashboardStatus === "ready"
+                  ? "Values below reflect seeded synthetic records (SYNTH-PAT-0001 cohort from Module 3). Real-time clinical metrics are never fabricated."
+                  : dashboardStatus === "unavailable"
+                  ? "Live backend aggregation endpoint is pending Phase 5.3. Showing truthful unavailable state."
+                  : "Rendering accessible skeleton placeholders simulating asynchronous metric retrieval."}
+              </span>
+            </div>
+            <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--font-size-micro)" }}>
+              Contract: Phase 5.1 &bull; REST API: Phase 5.3
+            </span>
+          </div>
+
+          {/* 4 Summary Domain Cards */}
+          <div className={styles.cardsGrid} style={{ marginBottom: "var(--space-6)" }}>
+            <PatientSummaryCard
+              summary={dashboardStatus === "ready" ? DEMO_PATIENTS : null}
+              status={dashboardStatus}
+              provenance="Synthetic seed cohort (Module 3)"
+            />
+            <EncounterSummaryCard
+              summary={dashboardStatus === "ready" ? DEMO_ENCOUNTERS : null}
+              status={dashboardStatus}
+              provenance="Synthetic care interactions (Module 3)"
+            />
+            <AnalysisSummaryCard
+              summary={dashboardStatus === "ready" ? DEMO_ANALYSIS : null}
+              status={dashboardStatus}
+              provenance="Evaluated model records (Module 3)"
+            />
+            <ReviewQueueSummaryCard
+              summary={dashboardStatus === "ready" ? DEMO_REVIEWS : null}
+              status={dashboardStatus}
+              provenance="Completed/abstained candidate runs"
+            />
+          </div>
+
+          {/* Recent System Activity Feed */}
+          <RecentActivityFeed
+            summary={dashboardStatus === "ready" ? DEMO_ACTIVITY : null}
+            status={dashboardStatus}
+            provenance="Immutable audit log (Module 3)"
+            maxItems={5}
+          />
         </section>
 
         {/* Architectural Research Directions Section — Demonstrating Card Composition */}
@@ -261,6 +514,12 @@ export default function Home() {
                 <TableCell>Responsive Drawer, Accessibility Regressions, 69 Tests</TableCell>
                 <TableCell>Module 4 (Phase 4.7)</TableCell>
                 <TableCell><Badge variant="success">Module 4 Complete (69 Tests)</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Overview Dashboard</TableCell>
+                <TableCell>Summary Cards &amp; Recent Activity (Phase 5.1 Contracts)</TableCell>
+                <TableCell>Module 5 (Phase 5.2)</TableCell>
+                <TableCell><Badge variant="success">Phase 5.2 UI Active</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>
