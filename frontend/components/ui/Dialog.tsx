@@ -126,19 +126,70 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   ({ showCloseButton = true, className = "", children, ...props }, ref) => {
     const { isOpen, closeDialog, titleId, descriptionId } = useDialogContext();
     const contentRef = useRef<HTMLDivElement | null>(null);
+    const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
-    // Escape key listener
+    // Escape key listener & focus management
     useEffect(() => {
       if (!isOpen) return;
 
+      if (typeof document !== "undefined") {
+        previouslyFocusedElement.current = document.activeElement as HTMLElement | null;
+      }
+
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === "Escape") {
+          event.preventDefault();
           closeDialog();
+          return;
+        }
+
+        // Tab focus containment
+        if (event.key === "Tab" && contentRef.current) {
+          const focusableSelectors = [
+            'a[href]',
+            'button:not([disabled])',
+            'textarea:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])',
+          ].join(", ");
+
+          const focusableElements = Array.from(
+            contentRef.current.querySelectorAll<HTMLElement>(focusableSelectors)
+          );
+
+          if (focusableElements.length === 0) {
+            event.preventDefault();
+            return;
+          }
+
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+
+          if (event.shiftKey) {
+            if (
+              document.activeElement === firstElement ||
+              document.activeElement === contentRef.current
+            ) {
+              event.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              event.preventDefault();
+              firstElement.focus();
+            }
+          }
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        if (previouslyFocusedElement.current && typeof previouslyFocusedElement.current.focus === "function") {
+          previouslyFocusedElement.current.focus();
+        }
+      };
     }, [isOpen, closeDialog]);
 
     // Focus on open

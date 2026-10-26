@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PlannedFeatureState, AccessDeniedState } from "@/components/states";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
@@ -28,40 +29,19 @@ export default function AdminPage() {
       }
     >
       <div className={styles.container}>
-        {/* Module Implementation Status Callout */}
-        <section
-          className={styles.disclaimerBox}
-          role="region"
-          aria-labelledby="admin-status-title"
-        >
-          <svg
-            className={styles.disclaimerIcon}
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <div className={styles.disclaimerBody}>
-            <h2 id="admin-status-title" className={styles.disclaimerTitle}>
-              Roadmap Status: Module 19 (Block 5)
-            </h2>
-            <p className={styles.disclaimerText}>
-              Platform Administration &amp; Governance is scheduled for implementation in Module 19.
-              The underlying database schema for users, roles, and immutable audit events was established
-              and verified in Module 3. Live administration dashboards, user management forms, and
-              interactive audit log explorers are not yet connected to this frontend shell.
-            </p>
-          </div>
-        </section>
+        {/* Module Implementation Status Callout using PlannedFeatureState */}
+        <PlannedFeatureState
+          moduleName="Module 19: Platform Administration & Governance"
+          targetBlock="Block 5: Production Readiness & Verification"
+          statusText="Planned for a future module"
+          description="Platform Administration & Governance is scheduled for implementation in Module 19. The underlying database schema for users, roles, and immutable audit events was established and verified in Module 3. Live administration dashboards, user management forms, and interactive audit log explorers are not yet connected to this frontend shell."
+          verifiedFoundations={[
+            "Database Schema: User, UserRole, AuditEvent models (Module 3)",
+            "Audit Integrity: Cryptographic append-only immutable event logs",
+            "Repositories: AuditEventRepository & User domain services",
+            "Pydantic Schemas: AuditEventCreate, AuditEventResponse",
+          ]}
+        />
 
         {/* Planned Architecture Specifications */}
         <section aria-labelledby="admin-capabilities-heading">
@@ -182,6 +162,24 @@ export default function AdminPage() {
               <span className={styles.specValue}>AuditEventCreate, AuditEventResponse</span>
             </div>
           </div>
+        </section>
+
+        {/* Access-Denied Presentation Demonstration */}
+        <section aria-labelledby="admin-access-demo-heading">
+          <div className={styles.sectionHeading}>
+            <h2 id="admin-access-demo-heading" className={styles.sectionTitle}>
+              Access Boundary Presentation Pattern
+            </h2>
+            <p className={styles.sectionSubtitle}>
+              Reusable UI state rendered when a session lacks the administrative governance role.
+            </p>
+          </div>
+
+          <AccessDeniedState
+            title="Administrative Access Restricted"
+            message="This area requires system governance privileges. Physician and Research Scientist sessions are restricted from altering audit configuration or database connection pools."
+            requiredRole="Platform Administrator"
+          />
         </section>
       </div>
     </PageContainer>

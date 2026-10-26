@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.4: Reusable UI Component Primitives.<br/>
-> Established comprehensive library of reusable, accessible UI component primitives (`Button`, `Card`, `Badge`, `Table`, `Form`, `Dialog`, `Tabs`, `Skeleton`, `Toast`) built on Arogya AI design tokens and integrated into the application shell. Verified with 24 automated unit tests.
+> **Status:** Module 4 (Clinical Frontend Application Shell), Phase 4.5: Loading, Empty, Error & Access-Denied States.<br/>
+> Established comprehensive library of reusable, accessible UI component primitives and application states (`LoadingState`, `EmptyState`, `ErrorState`, `InlineError`, `AccessDeniedState`, `PlannedFeatureState`, plus Next.js App Router `error.tsx` and `not-found.tsx`) built on Arogya AI design tokens and integrated into the application shell. Verified with 43 automated unit tests across 15 suites.
 
 ---
 
@@ -45,7 +45,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 24 component unit tests across 8 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 43 component and state unit tests across 15 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -57,15 +57,96 @@ All shared UI primitives are located in [`frontend/components/ui/`](components/u
 
 | Component | Primitives & Variants | Key Features |
 | :--- | :--- | :--- |
-| **Button** | `primary`, `secondary`, `outline`, `ghost`, `danger`<br/>Sizes: `sm`, `md`, `lg` | Semantic `<button>`, native types (`button`, `submit`, `reset`), leading/trailing icons, disabled state with `aria-disabled`. |
+| **Button** | `primary`, `secondary`, `outline`, `ghost`, `danger`<br/>Sizes: `sm`, `md`, `lg` | Semantic `<button>`, native types (`button`, `submit`, `reset`), `asChild` composition, leading/trailing icons, disabled state with `aria-disabled`. |
 | **Card** | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Composable structure, polymorphic `as` prop (`article`, `section`, `div`), subtle clinical elevation. |
 | **Badge** | `neutral`, `info`, `success`, `warning`, `danger`<br/>Sizes: `sm`, `md` | Explicit text labels, optional indicator dot (`withDot`), high-contrast clinical status tokens. |
 | **Table** | `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption` | Responsive horizontal scroll wrapper, semantic `scope="col"`, dense row token support, accessible caption. |
 | **Form** | `Label`, `Input`, `Textarea`, `Select`, `Checkbox`, `FormField` | Programmatic label association, clear `aria-invalid` error states with `role="alert"`, helper text, custom accessible checkbox. |
-| **Dialog** | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogBody`, `DialogFooter`, `DialogClose` | Accessible modal (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`), Escape key listener, backdrop dismiss, focus management, `asChild` composition. |
+| **Dialog** | `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogBody`, `DialogFooter`, `DialogClose` | Accessible modal (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`), Escape key listener, backdrop dismiss, Tab focus containment, focus restoration on unmount, `asChild` composition. |
 | **Tabs** | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | W3C WAI-ARIA tab pattern (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"`). |
 | **Skeleton** | `rectangular`, `circular`, `text` | Decorative loading placeholder (`aria-hidden="true"`), pulse animation respecting `prefers-reduced-motion`. |
 | **Toast** | `neutral`, `info`, `success`, `warning`, `danger` | Accessible notification presentation (`role="status"`, `role="alert"`, `aria-live="polite"`), dismissible button. |
+
+---
+
+## 5. Reusable Application State Primitives (Phase 4.5)
+
+All reusable application state components are located in [`frontend/components/states/`](components/states/) and exported via [`index.ts`](components/states/index.ts):
+
+| Component | Target Scenarios | Accessibility & Privacy Features |
+| :--- | :--- | :--- |
+| **`LoadingState`** | Page, section, card, or inline loading placeholders. | `role="status"`, `aria-live="polite"`, decorative skeletons marked `aria-hidden="true"`, respectful of `prefers-reduced-motion`. Avoids simulating false backend progress percentages. |
+| **`EmptyState`** | No records available, no search matches, no research runs queued. | Semantic heading hierarchy, `role="region"`, optional primary action button, clear non-diagnostic context notice preventing false claims that queries occurred. |
+| **`ErrorState`** | Unexpected exceptions, failed service attempts. | `role="alert"`, clear nontechnical summary, safe diagnostic ID (no stack traces, tokens, or PHI exposed), recovery retry button rendered only when parent supplies `onRetry`. |
+| **`InlineError`** | Compact inline error presentation for form fields and table rows. | `role="alert"`, accessible warning icon, text label. |
+| **`AccessDeniedState`** | Administrative route boundary notice. | Clear statement that access is restricted without leaking sensitive protected resource details; optional return action; explicit boundary disclaimer stating frontend views are not security boundaries. |
+| **`PlannedFeatureState`** | Unimplemented roadmap pages (`/patients`, `/analysis`, `/research`, `/admin`). | Honest language ("Planned for a future module", "Not implemented yet"), lists verified architecture foundations from earlier modules (e.g., Module 3 database models and seed data), and preserves research prototype notices. |
+
+### Route-Level Error Boundaries & 404 Handlers
+
+* **`frontend/app/error.tsx`:** Next.js App Router client error boundary wrapping unhandled rendering exceptions with an accessible `ErrorState`, sanitized diagnostic reference, and meaningful `reset()` retry action.
+* **`frontend/app/not-found.tsx`:** Clean, accessible 404 presentation using `EmptyState` with a navigation action returning clinicians safely to the Overview route.
+
+### State Usage Examples
+
+```tsx
+import {
+  LoadingState,
+  EmptyState,
+  ErrorState,
+  AccessDeniedState,
+  PlannedFeatureState,
+} from "@/components/states";
+
+// 1. Loading State
+<LoadingState
+  variant="section"
+  label="Retrieving Longitudinal Laboratory Metrics..."
+  description="Accessing Module 3 observations repository."
+  lines={3}
+/>
+
+// 2. Empty State
+<EmptyState
+  preset="runs"
+  title="No Active Research Runs In Progress"
+  description="There are currently no inference pipelines or multi-agent evaluations executing against this synthetic cohort."
+  action={{
+    label: "Initiate Exploratory Run",
+    onClick: handleInitiate,
+    variant: "primary",
+  }}
+  notice="Illustrative empty state demonstration — does not imply backend query execution."
+/>
+
+// 3. Error State with Working Retry Action
+<ErrorState
+  title="Pipeline Disconnection"
+  message="A communication interruption occurred while contacting the synthetic evaluation runner."
+  errorCode="ERR-SYNTH-EVAL-404"
+  onRetry={handleRetry}
+  retryLabel="Retry Connection"
+/>
+
+// 4. Access-Denied State
+<AccessDeniedState
+  title="Administrative Access Restricted"
+  message="This view requires designated platform oversight roles."
+  requiredRole="Platform Administrator"
+/>
+
+// 5. Planned Feature State for Roadmap Routes
+<PlannedFeatureState
+  moduleName="Module 6: Patient Intelligence"
+  targetBlock="Block 2: Clinical Domain Foundation"
+  statusText="Planned for a future module"
+  description="Patient Intelligence is scheduled for full implementation in Module 6."
+  verifiedFoundations={[
+    "SQLAlchemy Models: Patient, Encounter, Observation (Module 3)",
+    "Repositories: PatientRepository, EncounterRepository",
+  ]}
+/>
+```
 
 ### Usage Examples
 
@@ -237,6 +318,8 @@ frontend/
 │   ├── layout.tsx              # Root layout wrapping AppShell & fonts
 │   ├── page.tsx                # Overview landing page & component showcase
 │   ├── page.module.css         # Scoped CSS module for landing page content
+│   ├── error.tsx               # Next.js App Router route-level error boundary
+│   ├── not-found.tsx           # Next.js App Router 404 handler
 │   ├── admin/
 │   │   └── page.tsx            # Administration & governance route
 │   ├── analysis/
@@ -254,6 +337,18 @@ frontend/
 │   │   ├── PageContainer.tsx   # Reusable page scaffold
 │   │   ├── PageContainer.module.css # Scoped styles for PageContainer
 │   │   └── Sidebar.tsx         # Primary navigation sidebar & mobile drawer
+│   ├── states/
+│   │   ├── index.ts            # Central barrel export for all state primitives
+│   │   ├── LoadingState.tsx    # Page/section/card skeleton loading state
+│   │   ├── LoadingState.module.css
+│   │   ├── EmptyState.tsx      # Semantic non-diagnostic empty results state
+│   │   ├── EmptyState.module.css
+│   │   ├── ErrorState.tsx      # Clear error state & InlineError component
+│   │   ├── ErrorState.module.css
+│   │   ├── AccessDeniedState.tsx # Presentation-only access boundary state
+│   │   ├── AccessDeniedState.module.css
+│   │   ├── PlannedFeatureState.tsx # Honest roadmap status callout component
+│   │   └── PlannedFeatureState.module.css
 │   └── ui/
 │       ├── index.ts            # Central barrel export for all UI primitives
 │       ├── Badge.tsx           # Semantic status badge component
@@ -277,7 +372,9 @@ frontend/
 ├── tests/
 │   ├── css-loader.mjs          # Node ESM loader for mocking CSS module imports
 │   ├── register-css.mjs        # Node loader registration hook
-│   └── components.test.tsx     # 24 unit tests covering all UI primitives
+│   ├── components.test.tsx     # 24 unit tests covering UI primitives
+│   ├── dialog.test.tsx         # 6 focused unit tests for dialog keyboard & accessibility
+│   └── states.test.tsx         # 13 unit tests covering all application states & 404
 └── public/                     # Static public assets (SVG icons, logos)
 ```
 
@@ -285,6 +382,7 @@ frontend/
 
 ## 9. Current Implementation Limitations & Roadmap
 
-* **Clinical Workflow Disconnection:** In Phase 4.4, the frontend provides the application shell, navigation framework, and reusable UI primitives. Destination routes and component previews are functional and styled, but **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
-* **Authentication & Authorization:** Client-side route guards, user session state, and JWT token refresh are deferred to Module 7.
+* **Clinical Workflow Disconnection:** In Phase 4.5, the frontend provides the application shell, navigation framework, reusable UI primitives, and application states (loading, empty, error, access-denied, planned feature). Destination routes and component previews are functional and styled, but **not yet connected** to live backend REST endpoints, patient cohort data, or clinical inference pipelines.
+* **Authentication & Authorization:** Client-side route guards, user session state, and JWT token refresh are deferred to Module 7. Frontend `AccessDeniedState` is strictly a presentation layer pattern and does not represent an enforced security boundary.
+* **Automated Browser Automation Environment:** In this environment, headless browser context initialization encountered a CDP port resolution limitation during subagent execution. Component rendering, static optimization, and unit testing were verified via Next.js Turbopack build and Node.js test runner suites.
 * **Research Disclaimer:** Arogya AI is an investigative research prototype. It does not provide certified medical diagnosis or autonomous clinical decision-making.

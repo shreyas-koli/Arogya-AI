@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PlannedFeatureState } from "@/components/states";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
@@ -28,40 +29,19 @@ export default function PatientsPage() {
       }
     >
       <div className={styles.container}>
-        {/* Module Implementation Status Callout */}
-        <section
-          className={styles.disclaimerBox}
-          role="region"
-          aria-labelledby="patients-status-title"
-        >
-          <svg
-            className={styles.disclaimerIcon}
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <div className={styles.disclaimerBody}>
-            <h2 id="patients-status-title" className={styles.disclaimerTitle}>
-              Roadmap Status: Module 6 (Block 2)
-            </h2>
-            <p className={styles.disclaimerText}>
-              Patient Intelligence is scheduled for full implementation in Module 6. The relational
-              entities (`Patient`, `Encounter`, `Observation`) and data access services are established
-              in the backend (Module 3). Interactive patient cohorts, longitudinal timelines, and live
-              EHR integration are not yet connected to this frontend shell.
-            </p>
-          </div>
-        </section>
+        {/* Module Implementation Status Callout using PlannedFeatureState */}
+        <PlannedFeatureState
+          moduleName="Module 6: Patient Intelligence"
+          targetBlock="Block 2: Clinical Domain Foundation"
+          statusText="Planned for a future module"
+          description="Patient Intelligence is scheduled for full implementation in Module 6. The relational entities (Patient, Encounter, Observation) and data access repositories are verified in the backend (Module 3). Interactive patient cohorts, longitudinal timelines, and live EHR integration are not yet connected to this frontend shell."
+          verifiedFoundations={[
+            "SQLAlchemy Models: Patient, Encounter, Observation (Module 3)",
+            "Repositories: PatientRepository, EncounterRepository, ObservationRepository",
+            "Pydantic Schemas: PatientCreate, PatientResponse, EncounterResponse",
+            "Synthetic Seed: De-identified synthetic patient cohorts",
+          ]}
+        />
 
         {/* Planned Architecture Specifications */}
         <section aria-labelledby="patients-capabilities-heading">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PlannedFeatureState } from "@/components/states";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
@@ -28,40 +29,19 @@ export default function ResearchPage() {
       }
     >
       <div className={styles.container}>
-        {/* Module Implementation Status Callout */}
-        <section
-          className={styles.disclaimerBox}
-          role="region"
-          aria-labelledby="research-status-title"
-        >
-          <svg
-            className={styles.disclaimerIcon}
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <div className={styles.disclaimerBody}>
-            <h2 id="research-status-title" className={styles.disclaimerTitle}>
-              Roadmap Status: Module 18 (Block 5)
-            </h2>
-            <p className={styles.disclaimerText}>
-              The AI Research Lab is scheduled for implementation in Module 18, following model
-              research (Modules 9–10) and agentic orchestration (Modules 11–14). Cross-architecture
-              benchmarks, SHAP/Grad-CAM visualizers, and experiment registries are not yet connected to
-              this frontend shell.
-            </p>
-          </div>
-        </section>
+        {/* Module Implementation Status Callout using PlannedFeatureState */}
+        <PlannedFeatureState
+          moduleName="Module 18: AI Research Lab & Model Evaluation"
+          targetBlock="Block 5: Production Readiness & Verification"
+          statusText="Planned for a future module"
+          description="The AI Research Lab is scheduled for implementation in Module 18, following model research (Modules 9–10) and agentic orchestration (Modules 11–14). Cross-architecture benchmarks, SHAP/Grad-CAM visualizers, and experiment registries are not yet connected to this frontend shell."
+          verifiedFoundations={[
+            "Pipeline Dependency: Module 9 Tabular Risk Baseline (scikit-learn)",
+            "Vision Pipeline: Module 10 Chest X-ray Pipeline (PyTorch)",
+            "State Machine: Module 11 Multi-Agent State Graph (LangGraph)",
+            "Explainability: Module 14 Evidence Synthesis & XAI Presentation",
+          ]}
+        />
 
         {/* Planned Architecture Specifications */}
         <section aria-labelledby="research-capabilities-heading">

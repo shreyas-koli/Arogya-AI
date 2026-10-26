@@ -36,10 +36,17 @@ import {
   Skeleton,
   Toast,
 } from "@/components/ui";
+import {
+  LoadingState,
+  EmptyState,
+  ErrorState,
+  AccessDeniedState,
+} from "@/components/states";
 import styles from "./page.module.css";
 
 export default function Home() {
   const [consentChecked, setConsentChecked] = useState(false);
+  const [simulatedErrorResolved, setSimulatedErrorResolved] = useState(false);
 
   return (
     <PageContainer
@@ -48,7 +55,7 @@ export default function Home() {
       breadcrumbs={[{ label: "Overview" }]}
       badge={
         <Badge variant="info" withDot>
-          Module 4: UI Primitives Active
+          Module 4: UI Primitives &amp; States Active
         </Badge>
       }
     >
@@ -235,20 +242,26 @@ export default function Home() {
                 <TableCell>UI Component Primitives</TableCell>
                 <TableCell>Vanilla CSS Tokens, Strict TypeScript</TableCell>
                 <TableCell>Module 4 (Phase 4.4)</TableCell>
-                <TableCell><Badge variant="info">Phase 4.4 Primitives Active</Badge></TableCell>
+                <TableCell><Badge variant="success">Phase 4.4 Primitives Active</Badge></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Application State Primitives</TableCell>
+                <TableCell>Loading, Empty, Error, Access-Denied, Planned</TableCell>
+                <TableCell>Module 4 (Phase 4.5)</TableCell>
+                <TableCell><Badge variant="info">Phase 4.5 Active</Badge></TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </section>
 
-        {/* UI Component Primitives Showcase — Demonstrating Tabs, Dialog, Form, Buttons */}
+        {/* UI Component Primitives & States Showcase — Demonstrating Tabs, Dialog, Form, States */}
         <section aria-labelledby="primitives-showcase-heading">
           <div className={styles.sectionHeading}>
             <h2 id="primitives-showcase-heading" className={styles.sectionTitle}>
-              UI Component Primitives Showcase
+              UI Components &amp; Application States Showcase
             </h2>
             <p className={styles.sectionSubtitle}>
-              Interactive demonstration of the reusable component library built on Arogya AI design tokens.
+              Interactive demonstration of the reusable component library and application state primitives built on Arogya AI design tokens.
             </p>
           </div>
 
@@ -258,7 +271,8 @@ export default function Home() {
                 <TabsList>
                   <TabsTrigger value="actions">Buttons &amp; Badges</TabsTrigger>
                   <TabsTrigger value="dialog">Dialog &amp; Forms</TabsTrigger>
-                  <TabsTrigger value="feedback">Notifications &amp; Loading</TabsTrigger>
+                  <TabsTrigger value="feedback">Notifications &amp; Feedback</TabsTrigger>
+                  <TabsTrigger value="states">Application States</TabsTrigger>
                 </TabsList>
 
                 {/* Tab 1: Buttons & Badges */}
@@ -355,7 +369,7 @@ export default function Home() {
                   </div>
                 </TabsContent>
 
-                {/* Tab 3: Notifications & Loading */}
+                {/* Tab 3: Notifications & Feedback */}
                 <TabsContent value="feedback">
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingTop: "var(--space-4)" }}>
                     <div>
@@ -385,6 +399,84 @@ export default function Home() {
                         <Skeleton height={14} width="100%" />
                         <Skeleton height={14} width="85%" />
                       </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Tab 4: Application States (Phase 4.5) */}
+                <TabsContent value="states">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingTop: "var(--space-4)" }}>
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        1. Reusable Loading State (Section Variant with Announcer)
+                      </h3>
+                      <LoadingState
+                        variant="section"
+                        label="Retrieving Longitudinal Laboratory Metrics..."
+                        description="Accessing verified Module 3 observations repository."
+                        lines={3}
+                      />
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        2. Reusable Empty State (Non-Diagnostic Query Notice)
+                      </h3>
+                      <EmptyState
+                        preset="runs"
+                        title="No Active Research Runs In Progress"
+                        description="There are currently no inference pipelines or multi-agent evaluations executing against this synthetic cohort."
+                        action={{
+                          label: "Initiate Exploratory Run",
+                          onClick: () => {},
+                          variant: "primary",
+                        }}
+                        notice="Illustrative empty state demonstration — does not imply backend query execution."
+                      />
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        3. Reusable Error State with Safe Recovery Action
+                      </h3>
+                      {simulatedErrorResolved ? (
+                        <div
+                          style={{
+                            padding: "var(--space-4)",
+                            backgroundColor: "var(--color-success-bg)",
+                            border: "1px solid var(--color-success-border)",
+                            borderRadius: "var(--radius-md)",
+                            color: "var(--color-success-fg)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>Simulated recovery successful! State reset cleanly.</span>
+                          <Button size="sm" variant="outline" onClick={() => setSimulatedErrorResolved(false)}>
+                            Re-trigger Error Demo
+                          </Button>
+                        </div>
+                      ) : (
+                        <ErrorState
+                          title="Simulated Pipeline Disconnection"
+                          message="A non-fatal communication interruption occurred while contacting the synthetic evaluation service."
+                          errorCode="ERR-SYNTH-EVAL-404"
+                          onRetry={() => setSimulatedErrorResolved(true)}
+                          retryLabel="Retry Connection"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wider)", marginBottom: "var(--space-3)" }}>
+                        4. Reusable Access-Denied State
+                      </h3>
+                      <AccessDeniedState
+                        title="Restricted Governance Console"
+                        message="Administrative controls are segregated to designated system oversight roles."
+                        requiredRole="System Administrator"
+                      />
                     </div>
                   </div>
                 </TabsContent>

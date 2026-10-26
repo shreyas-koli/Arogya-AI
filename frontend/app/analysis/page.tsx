@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PlannedFeatureState } from "@/components/states";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
@@ -28,40 +29,19 @@ export default function AnalysisPage() {
       }
     >
       <div className={styles.container}>
-        {/* Module Implementation Status Callout */}
-        <section
-          className={styles.disclaimerBox}
-          role="region"
-          aria-labelledby="analysis-status-title"
-        >
-          <svg
-            className={styles.disclaimerIcon}
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <div className={styles.disclaimerBody}>
-            <h2 id="analysis-status-title" className={styles.disclaimerTitle}>
-              Roadmap Status: Module 8 (Block 2)
-            </h2>
-            <p className={styles.disclaimerText}>
-              The Clinical Workspace is scheduled for implementation in Module 8. It brings together
-              patient context (Module 6), secure file handling (Module 7), and AI inference pipelines
-              (Modules 9–14). Multimodal case runners and live clinical inference pipelines are not yet
-              connected to this frontend shell.
-            </p>
-          </div>
-        </section>
+        {/* Module Implementation Status Callout using PlannedFeatureState */}
+        <PlannedFeatureState
+          moduleName="Module 8: Clinical Workspace & Case Analysis"
+          targetBlock="Block 2: Clinical Domain Foundation"
+          statusText="Planned for a future module"
+          description="The Clinical Workspace is scheduled for implementation in Module 8. It brings together patient context (Module 6), secure file handling (Module 7), and AI inference pipelines (Modules 9–14). Multimodal case runners and live clinical inference pipelines are not yet connected to this frontend shell."
+          verifiedFoundations={[
+            "Persistence Entities: AnalysisRun, UploadedAsset (Module 3)",
+            "Execution Lifecycle: QUEUED, RUNNING, COMPLETED, FAILED states",
+            "Audit Integration: AuditEvent linked to analysis run IDs",
+            "Inference Architecture: Scikit-Learn Tabular (M9) + PyTorch Vision (M10)",
+          ]}
+        />
 
         {/* Planned Architecture Specifications */}
         <section aria-labelledby="analysis-capabilities-heading">

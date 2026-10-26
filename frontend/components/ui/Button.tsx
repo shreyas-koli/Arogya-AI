@@ -9,6 +9,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   size?: ButtonSize;
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
+  asChild?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -22,6 +23,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       trailingIcon,
       disabled = false,
       type = "button",
+      asChild = false,
       ...props
     },
     ref
@@ -29,6 +31,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variantClass = styles[variant] || styles.primary;
     const sizeClass = styles[size] || styles.md;
     const combinedClassName = `${styles.button} ${variantClass} ${sizeClass} ${className}`.trim();
+
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<{ className?: string }>;
+      return React.cloneElement(child, {
+        className: `${combinedClassName} ${child.props?.className || ""}`.trim(),
+        ...props,
+      });
+    }
 
     return (
       <button
