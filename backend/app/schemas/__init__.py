@@ -23,6 +23,19 @@ from backend.app.schemas.common import (
     PaginatedResponse,
     ensure_timezone_aware,
 )
+from backend.app.schemas.dashboard import (
+    AnalysisRunStatus,
+    AnalysisStatusBreakdown,
+    AnalysisSummary,
+    DashboardOverviewResponse,
+    EncounterSummary,
+    PatientSummary,
+    PendingReviewItem,
+    PendingReviewQueuePaginated,
+    PendingReviewQueueSummary,
+    RecentActivityItem,
+    RecentActivitySummary,
+)
 from backend.app.schemas.encounter import (
     EncounterBase,
     EncounterCreate,
@@ -94,4 +107,16 @@ __all__ = [
     # Audit
     "AuditEventFilter",
     "AuditEventResponse",
+    # Dashboard (Module 5)
+    "AnalysisRunStatus",
+    "AnalysisStatusBreakdown",
+    "AnalysisSummary",
+    "DashboardOverviewResponse",
+    "EncounterSummary",
+    "PatientSummary",
+    "PendingReviewItem",
+    "PendingReviewQueuePaginated",
+    "PendingReviewQueueSummary",
+    "RecentActivityItem",
+    "RecentActivitySummary",
 ]
