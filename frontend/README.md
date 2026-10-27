@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 5 (Overview Dashboard), Phase 5.6: End-to-End Verification Complete.<br/>
-> Completed holistic verification of the Overview Dashboard across both backend aggregation services and frontend presentation layers. Validated live database metrics, synthetic demonstration mode with explicit provenance banners, combined date/status filters, empty dataset handling, error recovery with toggle between live retry and synthetic demo, and safety boundaries. Automated verification covers 129 tests across 29 test suites, zero TypeScript errors, zero ESLint warnings, and clean static compilation of all 19 routes.
+> **Status:** Module 6 (Patient Intelligence) Complete.<br/>
+> Implemented complete database-backed Patient Intelligence interface across all seven canonical phases: 6.1 Patient List (search, biological sex and cohort stratification, pagination, empty states), 6.2 Patient CRUD (schema-validated registration, profile viewing, and demographic editing), 6.3 Patient Profile (tabs for Overview, Encounters, Observations, Analysis Runs, and Longitudinal Timeline), 6.4 Encounters (creation, status lifecycle, cross-entity observation/analysis linkage), 6.5 Data Quality (completeness scoring and unit/physiological bound consistency checks), 6.6 API Integration (FastAPI REST endpoints and typed client), and 6.7 End-to-End Testing (138 automated frontend unit tests across 33 test suites, zero TypeScript errors, zero ESLint warnings, and verified production static build).
 
 
 
@@ -47,7 +47,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 129 component, state, dashboard, filter, visualization, API client, and end-to-end workflow unit tests across 29 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 138 component, state, dashboard, filter, visualization, patient intelligence, API client, and end-to-end workflow unit tests across 33 suites using `node:test` and `tsx`. |
 
 ---
 

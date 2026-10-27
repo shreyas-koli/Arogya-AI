@@ -6,7 +6,7 @@ Distinctly represents quantitative vs. qualitative observations and segregates
 measurements from probabilistic AI model inferences.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 from pydantic import Field, field_validator, model_validator
@@ -64,6 +64,17 @@ class ObservationBase(BaseSchema):
         return res
 
 
+class ObservationCreatePayload(ObservationBase):
+    """Request contract for recording an observation where encounter context is scoped by the URL path."""
+
+    @model_validator(mode="after")
+    def validate_value_presence(self) -> "ObservationCreatePayload":
+        """Ensure at least one of numeric_value or text_value is provided."""
+        if self.numeric_value is None and self.text_value is None:
+            raise ValueError("Observation must provide either 'numeric_value' or 'text_value'")
+        return self
+
+
 class ObservationCreate(ObservationBase):
     """Request contract for recording a clinical observation."""
 
@@ -97,3 +108,11 @@ class ObservationResponse(ObservationBase, ORMModel):
     created_at: datetime = Field(
         description="Record persistence timestamp in UTC",
     )
+
+    @field_validator("observed_at", "created_at", mode="before")
+    @classmethod
+    def ensure_response_tz(cls, v: Any) -> Any:
+        if isinstance(v, datetime) and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+

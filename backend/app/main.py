@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.health import router as health_router
+from backend.app.api.patients import router as patients_router
 from backend.app.errors import register_exception_handlers
 from backend.app.logging import setup_logging
 from backend.app.middleware import RequestContextMiddleware
@@ -22,6 +23,10 @@ OPENAPI_TAGS = [
     {
         "name": "Dashboard",
         "description": "Overview metrics, candidate review triage, and operational activity aggregation.",
+    },
+    {
+        "name": "Patient Intelligence",
+        "description": "Longitudinal patient cohorts, encounter lifecycles, physiological observations, and data quality evaluation.",
     },
 ]
 
@@ -82,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     prefix = app_settings.api_prefix.rstrip("/")
     app.include_router(health_router, prefix=prefix)
     app.include_router(dashboard_router, prefix=prefix)
+    app.include_router(patients_router, prefix=prefix)
 
     return app
 

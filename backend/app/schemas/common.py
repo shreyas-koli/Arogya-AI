@@ -6,7 +6,7 @@ with generic pagination envelopes and timezone verification.
 """
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -78,3 +78,5 @@ def ensure_timezone_aware(dt: datetime | None) -> datetime | None:
             "Timestamp must be timezone-aware (e.g. UTC ISO 8601 string like '2026-10-25T10:00:00Z')"
         )
     return dt
+
+

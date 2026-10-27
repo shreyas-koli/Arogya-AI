@@ -66,13 +66,20 @@ class PatientRepository(BaseRepository[Patient]):
         limit: int = 100,
         offset: int = 0,
         is_synthetic: bool | None = None,
+        search: str | None = None,
+        biological_sex: str | None = None,
     ) -> Sequence[Patient]:
-        """Retrieve a bounded list of patient records."""
+        """Retrieve a bounded list of patient records matching optional search and filters."""
         clamped_limit, clamped_offset = self._sanitize_pagination(limit, offset)
         stmt = select(Patient)
 
         if is_synthetic is not None:
             stmt = stmt.where(Patient.is_synthetic == is_synthetic)
+        if biological_sex is not None and biological_sex.strip():
+            stmt = stmt.where(Patient.biological_sex == biological_sex.strip().lower())
+        if search is not None and search.strip():
+            term = f"%{search.strip()}%"
+            stmt = stmt.where(Patient.mrn_pseudonym.ilike(term))
 
         stmt = (
             stmt.order_by(Patient.created_at.desc())
@@ -81,9 +88,20 @@ class PatientRepository(BaseRepository[Patient]):
         )
         return self.session.scalars(stmt).all()
 
-    def count_patients(self, is_synthetic: bool | None = None) -> int:
+    def count_patients(
+        self,
+        is_synthetic: bool | None = None,
+        search: str | None = None,
+        biological_sex: str | None = None,
+    ) -> int:
         """Count total patient records matching criteria."""
         stmt = select(func.count(Patient.id))
         if is_synthetic is not None:
             stmt = stmt.where(Patient.is_synthetic == is_synthetic)
+        if biological_sex is not None and biological_sex.strip():
+            stmt = stmt.where(Patient.biological_sex == biological_sex.strip().lower())
+        if search is not None and search.strip():
+            term = f"%{search.strip()}%"
+            stmt = stmt.where(Patient.mrn_pseudonym.ilike(term))
         return self.session.scalar(stmt) or 0
+

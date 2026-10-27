@@ -5,8 +5,8 @@ Defines contracts for clinical encounter interactions, temporal lifecycle bounda
 and status tracking.
 """
 
-from datetime import datetime
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Any, Literal
 from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 from backend.app.schemas.common import BaseSchema, ORMModel, ensure_timezone_aware
@@ -43,6 +43,17 @@ class EncounterBase(BaseSchema):
     def validate_timezones(cls, v: datetime | None) -> datetime | None:
         """Enforce timezone awareness on encounter boundary timestamps."""
         return ensure_timezone_aware(v)
+
+
+class EncounterCreatePayload(EncounterBase):
+    """Request contract for creating an encounter where patient_id is scoped by the endpoint path."""
+
+    @model_validator(mode="after")
+    def validate_temporal_order(self) -> "EncounterCreatePayload":
+        """Verify that conclusion time does not precede commencement time."""
+        if self.end_time is not None and self.end_time < self.start_time:
+            raise ValueError("end_time cannot be earlier than start_time")
+        return self
 
 
 class EncounterCreate(EncounterBase):
@@ -113,3 +124,11 @@ class EncounterResponse(EncounterBase, ORMModel):
     updated_at: datetime = Field(
         description="Record last-modified timestamp in UTC",
     )
+
+    @field_validator("start_time", "end_time", "created_at", "updated_at", mode="before")
+    @classmethod
+    def ensure_response_tz(cls, v: Any) -> Any:
+        if isinstance(v, datetime) and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+

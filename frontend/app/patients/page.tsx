@@ -1,171 +1,377 @@
-import type { Metadata } from "next";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { PlannedFeatureState } from "@/components/states";
+import { Toast, type ToastVariant } from "@/components/ui/Toast";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  PatientList,
+  PatientProfile,
+  RegisterPatientDialog,
+  EditPatientDialog,
+  NewEncounterDialog,
+  RecordObservationDialog,
+} from "@/components/patients";
+import {
+  fetchPatients,
+  fetchPatientQuality,
+  fetchPatientEncounters,
+  fetchPatientObservations,
+  fetchPatientAnalysisRuns,
+  fetchPatientTimeline,
+  updateEncounter,
+  PatientsApiError,
+} from "@/services/patients";
+import type {
+  AnalysisRun,
+  DataQualityReport,
+  Encounter,
+  Observation,
+  Patient,
+  PatientTimelineItem,
+} from "@/types/patients";
 import styles from "../page.module.css";
 
-export const metadata: Metadata = {
-  title: "Patient Intelligence — Arogya AI",
-  description: "Longitudinal patient profiles, encounters, and clinical observation timelines.",
-};
+interface ToastItem {
+  id: string;
+  title: string;
+  description?: string;
+  variant: ToastVariant;
+}
 
 export default function PatientsPage() {
+  // Navigation & view selection
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  // Patient Cohort List state
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const [search, setSearch] = useState("");
+  const [biologicalSex, setBiologicalSex] = useState("all");
+  const [syntheticFilter, setSyntheticFilter] = useState("all");
+  const [isLoadingList, setIsLoadingList] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+
+  // Selected Patient Details state
+  const [quality, setQuality] = useState<DataQualityReport | null>(null);
+  const [encounters, setEncounters] = useState<Encounter[]>([]);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [analysisRuns, setAnalysisRuns] = useState<AnalysisRun[]>([]);
+  const [timeline, setTimeline] = useState<PatientTimelineItem[]>([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  // Dialog states
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isNewEncounterOpen, setIsNewEncounterOpen] = useState(false);
+  const [isRecordObsOpen, setIsRecordObsOpen] = useState(false);
+
+  // Toast feedback
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const addToast = (title: string, description?: string, variant: ToastVariant = "success") => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    setToasts((prev) => [...prev, { id, title, description, variant }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [detailsRefetchTrigger, setDetailsRefetchTrigger] = useState(0);
+
+  // 1. Fetch Patient List
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchList() {
+      setIsLoadingList(true);
+      setListError(null);
+      try {
+        const isSynth = syntheticFilter === "synthetic" ? true : syntheticFilter === "research" ? false : null;
+        const res = await fetchPatients({
+          search: search.trim() ? search.trim() : null,
+          biological_sex: biologicalSex !== "all" ? biologicalSex : null,
+          is_synthetic: isSynth,
+          page,
+          page_size: pageSize,
+        });
+        if (!cancelled) {
+          setPatients(res.items);
+          setTotalPatients(res.total);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          if (err instanceof PatientsApiError) {
+            setListError(err.message);
+          } else {
+            setListError("Failed to connect to Arogya AI backend. Verify backend is running.");
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingList(false);
+        }
+      }
+    }
+
+    fetchList();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [search, biologicalSex, syntheticFilter, page, pageSize, refetchTrigger]);
+
+  // 2. Fetch Selected Patient Details
+  useEffect(() => {
+    if (!selectedPatient) return;
+
+    let cancelled = false;
+
+    async function fetchDetails() {
+      if (!selectedPatient) return;
+      setIsLoadingDetails(true);
+      try {
+        const [qualityRes, encountersRes, obsRes, runsRes, timelineRes] = await Promise.all([
+          fetchPatientQuality(selectedPatient.id).catch(() => null),
+          fetchPatientEncounters(selectedPatient.id, { page_size: 100 }).catch(() => ({ items: [], total: 0, page: 1, page_size: 100 })),
+          fetchPatientObservations(selectedPatient.id, { page_size: 100 }).catch(() => ({ items: [], total: 0, page: 1, page_size: 100 })),
+          fetchPatientAnalysisRuns(selectedPatient.id, { page_size: 50 }).catch(() => ({ items: [], total: 0, page: 1, page_size: 50 })),
+          fetchPatientTimeline(selectedPatient.id, { limit: 50 }).catch(() => ({ patient_id: selectedPatient.id, items: [], total: 0 })),
+        ]);
+
+        if (!cancelled) {
+          setQuality(qualityRes);
+          setEncounters(encountersRes.items);
+          setObservations(obsRes.items);
+          setAnalysisRuns(runsRes.items);
+          setTimeline(timelineRes.items);
+        }
+      } catch {
+        if (!cancelled) {
+          addToast("Failed to load clinical details", "Some longitudinal records could not be fetched.", "warning");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingDetails(false);
+        }
+      }
+    }
+
+    fetchDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPatient, detailsRefetchTrigger]);
+
+  // Handle Mark Encounter Completed
+  const handleCompleteEncounter = async (encounterId: string) => {
+    try {
+      await updateEncounter(encounterId, {
+        status: "completed",
+        end_time: new Date().toISOString(),
+      });
+      addToast("Encounter Completed", "The encounter status has been updated to completed.");
+      setDetailsRefetchTrigger((prev) => prev + 1);
+    } catch {
+      addToast("Failed to update encounter", "Could not complete encounter.", "danger");
+    }
+  };
+
   return (
     <PageContainer
-      title="Patient Intelligence"
-      description="Longitudinal patient records, encounter history, physiological observations, and clinical timeline tracking."
-      breadcrumbs={[
-        { label: "Overview", href: "/" },
-        { label: "Patient Intelligence" },
-      ]}
+      title={selectedPatient ? `Patient: ${selectedPatient.mrn_pseudonym}` : "Patient Intelligence"}
+      description={
+        selectedPatient
+          ? "Longitudinal patient record, encounter episodes, physiological vitals, and data quality evaluation."
+          : "Longitudinal patient cohort management, search, demographic stratification, and care episodes."
+      }
+      breadcrumbs={
+        selectedPatient
+          ? [
+              { label: "Overview", href: "/" },
+              { label: "Patient Intelligence", href: "/patients" },
+              { label: selectedPatient.mrn_pseudonym },
+            ]
+          : [
+              { label: "Overview", href: "/" },
+              { label: "Patient Intelligence" },
+            ]
+      }
       badge={
         <div
           className={styles.stageBadge}
           role="status"
-          aria-label="Roadmap Module 6 Planned"
+          aria-label="Roadmap Module 6 Active"
         >
-          <span className={styles.stageDot} aria-hidden="true" />
-          <span>Module 6: Planned</span>
+          <span className={styles.stageDot} aria-hidden="true" style={{ background: "var(--color-success, #10b981)" }} />
+          <span>Module 6: Active</span>
         </div>
       }
     >
       <div className={styles.container}>
-        {/* Module Implementation Status Callout using PlannedFeatureState */}
-        <PlannedFeatureState
-          moduleName="Module 6: Patient Intelligence"
-          targetBlock="Block 2: Clinical Domain Foundation"
-          statusText="Planned for a future module"
-          description="Patient Intelligence is scheduled for full implementation in Module 6. The relational entities (Patient, Encounter, Observation) and data access repositories are verified in the backend (Module 3). Interactive patient cohorts, longitudinal timelines, and live EHR integration are not yet connected to this frontend shell."
-          verifiedFoundations={[
-            "SQLAlchemy Models: Patient, Encounter, Observation (Module 3)",
-            "Repositories: PatientRepository, EncounterRepository, ObservationRepository",
-            "Pydantic Schemas: PatientCreate, PatientResponse, EncounterResponse",
-            "Synthetic Seed: De-identified synthetic patient cohorts",
-          ]}
-        />
-
-        {/* Planned Architecture Specifications */}
-        <section aria-labelledby="patients-capabilities-heading">
-          <div className={styles.sectionHeading}>
-            <h2 id="patients-capabilities-heading" className={styles.sectionTitle}>
-              Planned Domain Capabilities
+        {/* Clinical Safety & Research Disclaimer */}
+        <section
+          className={styles.disclaimerBox}
+          role="region"
+          aria-labelledby="patients-safety-heading"
+        >
+          <div className={styles.disclaimerIcon} aria-hidden="true">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="patients-safety-heading" className={styles.disclaimerHeading}>
+              Clinical Safety Notice — Research Prototype
             </h2>
-            <p className={styles.sectionSubtitle}>
-              Target capabilities defined in the system architecture specification.
+            <p className={styles.disclaimerText}>
+              Patient Intelligence is an exploratory decision-support and synthetic intake interface.
+              All patient identifiers, encounters, and vital sign records are strictly synthetic or licensed research fixtures.
+              This system does not perform autonomous diagnosis or patient care without certified human clinician review.
             </p>
           </div>
-
-          <div className={styles.pillarsGrid}>
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Cohort &amp; Demographic Profiles</h3>
-              <p className={styles.pillarDescription}>
-                De-identified synthetic patient demographics, MRN tracking, and baseline
-                clinical profiles linked to verified database entities.
-              </p>
-            </article>
-
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Encounter Timeline</h3>
-              <p className={styles.pillarDescription}>
-                Chronological visualization of inpatient, outpatient, and ambulatory encounters
-                with clinical provider attribution and notes.
-              </p>
-            </article>
-
-            <article className={styles.pillarCard}>
-              <div className={styles.pillarIconContainer} aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                </svg>
-              </div>
-              <h3 className={styles.pillarTitle}>Observation Panels</h3>
-              <p className={styles.pillarDescription}>
-                Standardized physiological vitals and lab panels mapped to reference ranges
-                with automatic out-of-bounds flagging.
-              </p>
-            </article>
-          </div>
         </section>
 
-        {/* Foundation Alignment */}
-        <section className={styles.specCard} aria-labelledby="patients-backend-heading">
-          <div className={styles.specHeader}>
-            <div>
-              <h2 id="patients-backend-heading" className={styles.sectionTitle}>
-                Backend Data Readiness
-              </h2>
-              <p className={styles.sectionSubtitle}>
-                Persistence layer status verified in Module 3.
-              </p>
-            </div>
-            <div className={styles.statusTags}>
-              <span className={styles.badgeSuccess}>Schemas Ready</span>
-              <span className={styles.badgeInfo}>Module 3 Verified</span>
-            </div>
-          </div>
+        {/* View Switcher: Patient List vs. Selected Patient Profile */}
+        {listError ? (
+          <ErrorState
+            title="Unable to load patient records"
+            message={listError}
+            errorCode="PATIENT_SERVICE_ERROR"
+            onRetry={() => setRefetchTrigger((prev) => prev + 1)}
+          />
+        ) : selectedPatient ? (
+          <PatientProfile
+            patient={selectedPatient}
+            quality={quality}
+            encounters={encounters}
+            observations={observations}
+            analysisRuns={analysisRuns}
+            timeline={timeline}
+            isLoading={isLoadingDetails}
+            onBack={() => {
+              setSelectedPatient(null);
+              setRefetchTrigger((prev) => prev + 1);
+            }}
+            onOpenEdit={() => setIsEditOpen(true)}
+            onOpenNewEncounter={() => setIsNewEncounterOpen(true)}
+            onOpenRecordObservation={() => setIsRecordObsOpen(true)}
+            onCompleteEncounter={handleCompleteEncounter}
+          />
+        ) : (
+          <PatientList
+            patients={patients}
+            total={totalPatients}
+            page={page}
+            pageSize={pageSize}
+            isLoading={isLoadingList}
+            search={search}
+            biologicalSex={biologicalSex}
+            syntheticFilter={syntheticFilter}
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            onBiologicalSexChange={(val) => {
+              setBiologicalSex(val);
+              setPage(1);
+            }}
+            onSyntheticFilterChange={(val) => {
+              setSyntheticFilter(val);
+              setPage(1);
+            }}
+            onPageChange={setPage}
+            onSelectPatient={setSelectedPatient}
+            onOpenRegister={() => setIsRegisterOpen(true)}
+          />
+        )}
 
-          <div className={styles.specGrid}>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Database Model</span>
-              <span className={styles.specValue}>Patient, Encounter, Observation</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Repositories</span>
-              <span className={styles.specValue}>PatientRepository, EncounterRepository</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Pydantic Contracts</span>
-              <span className={styles.specValue}>PatientCreate, PatientResponse</span>
-            </div>
-            <div className={styles.specItem}>
-              <span className={styles.specLabel}>Synthetic Seed</span>
-              <span className={styles.specValue}>De-identified synthetic cohorts</span>
-            </div>
+        {/* Dialog Modals */}
+        <RegisterPatientDialog
+          open={isRegisterOpen}
+          onOpenChange={setIsRegisterOpen}
+          onSuccess={(newPatient) => {
+            addToast("Patient Registered", `Successfully registered cohort record '${newPatient.mrn_pseudonym}'.`);
+            setRefetchTrigger((prev) => prev + 1);
+            setSelectedPatient(newPatient);
+          }}
+        />
+
+        <EditPatientDialog
+          open={isEditOpen}
+          patient={selectedPatient}
+          onOpenChange={setIsEditOpen}
+          onSuccess={(updated) => {
+            addToast("Profile Updated", `Demographic attributes updated for '${updated.mrn_pseudonym}'.`);
+            setSelectedPatient(updated);
+            setDetailsRefetchTrigger((prev) => prev + 1);
+          }}
+        />
+
+        <NewEncounterDialog
+          open={isNewEncounterOpen}
+          patient={selectedPatient}
+          onOpenChange={setIsNewEncounterOpen}
+          onSuccess={() => {
+            addToast("Encounter Recorded", "New clinical encounter logged in patient history.");
+            setDetailsRefetchTrigger((prev) => prev + 1);
+          }}
+        />
+
+        <RecordObservationDialog
+          open={isRecordObsOpen}
+          patient={selectedPatient}
+          encounters={encounters}
+          onOpenChange={setIsRecordObsOpen}
+          onSuccess={(newObs) => {
+            addToast("Observation Logged", `Recorded measurement '${newObs.display_name}'.`);
+            setDetailsRefetchTrigger((prev) => prev + 1);
+          }}
+        />
+
+        {/* Toast Notification Stream */}
+        {toasts.length > 0 && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: "1.5rem",
+              right: "1.5rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              zIndex: 9999,
+            }}
+            aria-live="polite"
+          >
+            {toasts.map((t) => (
+              <Toast
+                key={t.id}
+                title={t.title}
+                description={t.description}
+                variant={t.variant}
+                onClose={() => removeToast(t.id)}
+              />
+            ))}
           </div>
-        </section>
+        )}
       </div>
     </PageContainer>
   );
 }
+

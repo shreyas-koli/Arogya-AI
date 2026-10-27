@@ -14,7 +14,7 @@ CONSISTENCY & INVARIANT RULES:
 7. Transaction Ownership: The caller strictly owns transaction commit/rollback boundaries. ClinicalService never commits or rolls back independently.
 """
 
-from datetime import datetime
+from datetime import date, datetime, timezone
 from typing import Any, Sequence
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -35,7 +35,14 @@ from backend.app.schemas.analysis import AnalysisRunCreate
 from backend.app.schemas.asset import AssetMetadataCreate
 from backend.app.schemas.encounter import EncounterCreate, EncounterUpdate
 from backend.app.schemas.observation import ObservationCreate
-from backend.app.schemas.patient import PatientCreate, PatientUpdate
+from backend.app.schemas.patient import (
+    DataQualityIssue,
+    DataQualityReport,
+    PatientCreate,
+    PatientTimelineItem,
+    PatientTimelineResponse,
+    PatientUpdate,
+)
 from backend.app.services.audit import AuditService
 from backend.app.services.exceptions import (
     ConsistencyError,
@@ -134,13 +141,31 @@ class ClinicalService:
         limit: int = 100,
         offset: int = 0,
         is_synthetic: bool | None = None,
+        search: str | None = None,
+        biological_sex: str | None = None,
     ) -> Sequence[Patient]:
-        """Retrieve bounded list of patients."""
+        """Retrieve bounded list of patients matching search criteria and demographic filters."""
         return self.patient_repo.list_patients(
             limit=limit,
             offset=offset,
             is_synthetic=is_synthetic,
+            search=search,
+            biological_sex=biological_sex,
         )
+
+    def count_patients(
+        self,
+        is_synthetic: bool | None = None,
+        search: str | None = None,
+        biological_sex: str | None = None,
+    ) -> int:
+        """Count total patients matching search and demographic criteria."""
+        return self.patient_repo.count_patients(
+            is_synthetic=is_synthetic,
+            search=search,
+            biological_sex=biological_sex,
+        )
+
 
     # -------------------------------------------------------------------------
     # Encounter Management
@@ -525,3 +550,316 @@ class ClinicalService:
             offset=offset,
             status=status,
         )
+
+    def count_encounters_by_patient(
+        self,
+        patient_id: UUID,
+        status: str | None = None,
+    ) -> int:
+        """Count total encounter records for a patient."""
+        return self.encounter_repo.count_by_patient(patient_id=patient_id, status=status)
+
+    def count_observations_by_encounter(
+        self,
+        encounter_id: UUID,
+    ) -> int:
+        """Count total observations recorded during an encounter."""
+        return self.obs_repo.count_by_encounter(encounter_id=encounter_id)
+
+    def count_observations_by_patient(
+        self,
+        patient_id: UUID,
+        code: str | None = None,
+    ) -> int:
+        """Count total observations recorded for a patient."""
+        return self.obs_repo.count_by_patient(patient_id=patient_id, code=code)
+
+    def count_analysis_runs_by_patient(
+        self,
+        patient_id: UUID,
+        status: str | None = None,
+    ) -> int:
+        """Count total analysis runs for a patient."""
+        return self.analysis_repo.count_by_patient(patient_id=patient_id, status=status)
+
+    # -------------------------------------------------------------------------
+    # Data Quality & Longitudinal Intelligence
+    # -------------------------------------------------------------------------
+
+    def evaluate_data_quality(self, patient_id: UUID) -> DataQualityReport:
+        """Evaluate demographic completeness, clinical density, and measurement unit integrity.
+
+        Analyzes:
+        - Demographic completeness (MRN, birth date, biological sex).
+        - Clinical continuity (encounters and observations counts).
+        - Unit specification and physiological bounds for vital signs.
+        - Temporal sanity (birth date, observation timestamps, encounter bounds).
+
+        Raises:
+            EntityNotFoundError: If the patient record does not exist.
+        """
+        patient = self.patient_repo.get_by_id(patient_id)
+        if patient is None:
+            raise EntityNotFoundError("Patient", patient_id)
+
+        encounters = self.encounter_repo.list_by_patient(patient_id=patient_id, limit=200)
+        observations = self.obs_repo.list_by_patient(patient_id=patient_id, limit=500)
+
+        issues: list[DataQualityIssue] = []
+        demographic_score = 0
+        clinical_score = 0
+
+        # 1. Demographic Quality Evaluation (Max 100)
+        if patient.mrn_pseudonym:
+            demographic_score += 30
+
+        if patient.birth_date is not None:
+            demographic_score += 40
+            if patient.birth_date > date.today():
+                issues.append(
+                    DataQualityIssue(
+                        category="temporal",
+                        severity="critical",
+                        field="birth_date",
+                        message="Recorded birth date is in the future.",
+                    )
+                )
+        else:
+            issues.append(
+                DataQualityIssue(
+                    category="demographic",
+                    severity="warning",
+                    field="birth_date",
+                    message="Birth date is missing. Age-stratified analysis and baselines cannot be computed.",
+                )
+            )
+
+        if patient.biological_sex and patient.biological_sex.lower() not in ("unknown", ""):
+            demographic_score += 30
+        else:
+            issues.append(
+                DataQualityIssue(
+                    category="demographic",
+                    severity="info",
+                    field="biological_sex",
+                    message="Biological sex classification is unspecified or unknown. Normal reference ranges cannot be sex-stratified.",
+                )
+            )
+
+        # 2. Clinical History Evaluation (Max 100)
+        if len(encounters) > 0:
+            clinical_score += 40
+            for enc in encounters:
+                if enc.end_time and enc.end_time < enc.start_time:
+                    issues.append(
+                        DataQualityIssue(
+                            category="temporal",
+                            severity="warning",
+                            field="encounter.end_time",
+                            message=f"Encounter '{enc.id}' end time precedes its commencement time.",
+                        )
+                    )
+        else:
+            issues.append(
+                DataQualityIssue(
+                    category="clinical",
+                    severity="info",
+                    field="encounters",
+                    message="No clinical encounters have been recorded for this patient profile.",
+                )
+            )
+
+        if len(observations) >= 3:
+            clinical_score += 60
+        elif len(observations) > 0:
+            clinical_score += 35
+        else:
+            issues.append(
+                DataQualityIssue(
+                    category="clinical",
+                    severity="info",
+                    field="observations",
+                    message="No physiological measurements or vital signs recorded.",
+                )
+            )
+
+        # 3. Measurement Unit & Physiological Bounds Checks
+        now_utc = datetime.now(timezone.utc)
+        for obs in observations:
+            obs_dt = obs.observed_at
+            if obs_dt.tzinfo is None:
+                obs_dt = obs_dt.replace(tzinfo=timezone.utc)
+            if obs_dt > now_utc:
+                issues.append(
+                    DataQualityIssue(
+                        category="temporal",
+                        severity="warning",
+                        field=f"obs:{obs.code}",
+                        message=f"Observation '{obs.display_name}' ({obs.code}) has an acquisition timestamp in the future.",
+                    )
+                )
+
+            # Missing standard unit check for numeric measurements
+            if obs.numeric_value is not None and not obs.unit:
+                issues.append(
+                    DataQualityIssue(
+                        category="unit",
+                        severity="warning",
+                        field=f"obs:{obs.code}",
+                        message=f"Numeric observation '{obs.display_name}' ({obs.numeric_value}) lacks a standard measurement unit.",
+                    )
+                )
+
+            val = obs.numeric_value
+            code_lower = (obs.code or "").lower()
+            name_lower = (obs.display_name or "").lower()
+            if val is not None:
+                # Heart Rate: standard plausible range 30-220 bpm
+                if "heart" in name_lower or "pulse" in name_lower or "8867-4" in code_lower:
+                    if val < 30 or val > 220:
+                        issues.append(
+                            DataQualityIssue(
+                                category="clinical",
+                                severity="warning",
+                                field=f"obs:{obs.code}",
+                                message=f"Heart rate value {val} {obs.unit or 'bpm'} is outside plausible physiological bounds (30-220 bpm).",
+                            )
+                        )
+                # Body Temperature: standard plausible range 32-43 °C
+                elif "temp" in name_lower or "8310-5" in code_lower:
+                    if val < 32.0 or val > 43.0:
+                        issues.append(
+                            DataQualityIssue(
+                                category="clinical",
+                                severity="warning",
+                                field=f"obs:{obs.code}",
+                                message=f"Body temperature {val} {obs.unit or '°C'} is outside plausible physiological bounds (32.0-43.0 °C).",
+                            )
+                        )
+                # Respiratory Rate: standard plausible range 6-60 breaths/min
+                elif "respirat" in name_lower or "9279-1" in code_lower:
+                    if val < 6 or val > 60:
+                        issues.append(
+                            DataQualityIssue(
+                                category="clinical",
+                                severity="warning",
+                                field=f"obs:{obs.code}",
+                                message=f"Respiratory rate {val} breaths/min is outside standard physiological bounds (6-60).",
+                            )
+                        )
+                # Oxygen Saturation (SpO2): plausible range 50-100%
+                elif "spo2" in name_lower or "oxygen" in name_lower or "2708-6" in code_lower:
+                    if val < 50 or val > 100:
+                        issues.append(
+                            DataQualityIssue(
+                                category="clinical",
+                                severity="warning",
+                                field=f"obs:{obs.code}",
+                                message=f"Oxygen saturation {val}% is outside plausible bounds (50-100%).",
+                            )
+                        )
+
+        completeness_score = int(demographic_score * 0.4 + clinical_score * 0.6)
+        has_warnings = any(i.severity in ("warning", "critical") for i in issues)
+
+        return DataQualityReport(
+            patient_id=patient_id,
+            completeness_score=completeness_score,
+            demographic_score=demographic_score,
+            clinical_score=clinical_score,
+            issues=issues,
+            has_warnings=has_warnings,
+        )
+
+    def get_patient_timeline(
+        self,
+        patient_id: UUID,
+        limit: int = 50,
+    ) -> PatientTimelineResponse:
+        """Construct a unified, chronological timeline across all encounters, observations, and analyses."""
+        patient = self.patient_repo.get_by_id(patient_id)
+        if patient is None:
+            raise EntityNotFoundError("Patient", patient_id)
+
+        items: list[PatientTimelineItem] = []
+
+        # 1. Encounters
+        encounters = self.encounter_repo.list_by_patient(patient_id=patient_id, limit=limit)
+        for enc in encounters:
+            ts = enc.start_time
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            items.append(
+                PatientTimelineItem(
+                    id=str(enc.id),
+                    event_type="encounter",
+                    title=f"{enc.encounter_type.capitalize()} Encounter",
+                    description=f"Status: {enc.status}. Started: {ts.strftime('%Y-%m-%d %H:%M UTC')}",
+                    timestamp=ts,
+                    status=enc.status,
+                    metadata={
+                        "encounter_type": enc.encounter_type,
+                        "end_time": enc.end_time.isoformat() if enc.end_time else None,
+                    },
+                )
+            )
+
+        # 2. Observations
+        observations = self.obs_repo.list_by_patient(patient_id=patient_id, limit=limit)
+        for obs in observations:
+            val_str = (
+                f"{obs.numeric_value} {obs.unit or ''}".strip()
+                if obs.numeric_value is not None
+                else (obs.text_value or "")
+            )
+            ts = obs.observed_at
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            items.append(
+                PatientTimelineItem(
+                    id=str(obs.id),
+                    event_type="observation",
+                    title=f"Observation: {obs.display_name}",
+                    description=f"Recorded: {val_str} (LOINC: {obs.code})",
+                    timestamp=ts,
+                    status="recorded",
+                    metadata={
+                        "code": obs.code,
+                        "value": val_str,
+                        "encounter_id": str(obs.encounter_id),
+                    },
+                )
+            )
+
+        # 3. Analysis Runs
+        runs = self.analysis_repo.list_by_patient(patient_id=patient_id, limit=limit)
+        for run in runs:
+            ts = run.completed_at or run.started_at or run.created_at
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            items.append(
+                PatientTimelineItem(
+                    id=str(run.id),
+                    event_type="analysis_run",
+                    title=f"Analysis: {run.model_name}",
+                    description=f"Version: {run.model_version} | Status: {run.status}",
+                    timestamp=ts,
+                    status=run.status,
+                    metadata={
+                        "model_name": run.model_name,
+                        "model_version": run.model_version,
+                        "results_summary": run.results_summary,
+                    },
+                )
+            )
+
+        # Sort descending (most recent first)
+        items.sort(key=lambda x: x.timestamp, reverse=True)
+        bounded_items = items[:limit]
+
+        return PatientTimelineResponse(
+            patient_id=patient_id,
+            items=bounded_items,
+            total=len(items),
+        )
+

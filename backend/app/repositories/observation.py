@@ -96,3 +96,9 @@ class ObservationRepository(BaseRepository[Observation]):
         if code is not None:
             stmt = stmt.where(Observation.code == code.strip())
         return self.session.scalar(stmt) or 0
+
+    def count_by_encounter(self, encounter_id: UUID) -> int:
+        """Count total observations recorded during an encounter."""
+        stmt = select(func.count(Observation.id)).where(Observation.encounter_id == encounter_id)
+        return self.session.scalar(stmt) or 0
+
