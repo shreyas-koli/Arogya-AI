@@ -6,6 +6,8 @@ attaching structured logging, request correlation tracing, and error handling.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.app.api.assets import router as assets_router
+from backend.app.api.auth import router as auth_router
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.health import router as health_router
 from backend.app.api.patients import router as patients_router
@@ -21,12 +23,20 @@ OPENAPI_TAGS = [
         "description": "Liveness and readiness probes for infrastructure monitoring and container orchestrators.",
     },
     {
+        "name": "Authentication & Identity",
+        "description": "User login, session token issuance, active logout, and identity profile reflection.",
+    },
+    {
         "name": "Dashboard",
         "description": "Overview metrics, candidate review triage, and operational activity aggregation.",
     },
     {
         "name": "Patient Intelligence",
         "description": "Longitudinal patient cohorts, encounter lifecycles, physiological observations, and data quality evaluation.",
+    },
+    {
+        "name": "Asset & File Handling",
+        "description": "Safe clinical file uploads, MIME/magic-byte validation, and authenticated downloads.",
     },
 ]
 
@@ -86,8 +96,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # 7. Mount versioned API routes under the configured prefix
     prefix = app_settings.api_prefix.rstrip("/")
     app.include_router(health_router, prefix=prefix)
+    app.include_router(auth_router, prefix=prefix)
     app.include_router(dashboard_router, prefix=prefix)
     app.include_router(patients_router, prefix=prefix)
+    app.include_router(assets_router, prefix=prefix)
 
     return app
 

@@ -60,7 +60,21 @@ def api_client(api_engine) -> Generator[TestClient, None, None]:
         finally:
             session.close()
 
+    from uuid import uuid4
+    from backend.app.db.models import Role, User
+    from backend.app.security.dependencies import get_current_user
+
+    test_user = User(
+        id=uuid4(),
+        username="test_clinician",
+        email="clinician@test.local",
+        full_name="Test Clinician",
+        is_active=True,
+        roles=[Role(id=uuid4(), name="doctor_reviewer")],
+    )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: test_user
     client = TestClient(app)
     try:
         yield client

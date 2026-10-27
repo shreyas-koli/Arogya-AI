@@ -78,6 +78,27 @@ class Settings(BaseSettings):
         default=None,
         description="Cryptographic secret key for session/token verification (Module 7)",
     )
+    access_token_expire_minutes: int = Field(
+        default=60,
+        description="Lifetime of JWT access tokens in minutes",
+    )
+    upload_storage_dir: str = Field(
+        default="storage/uploads",
+        description="Filesystem storage directory for uploaded clinical assets",
+    )
+    max_upload_size_bytes: int = Field(
+        default=20 * 1024 * 1024,
+        description="Maximum permitted file upload size in bytes (default 20MB)",
+    )
+
+    @property
+    def effective_secret_key(self) -> str:
+        """Return configured secret key or safe development fallback for non-production environments."""
+        if self.secret_key:
+            return self.secret_key.get_secret_value()
+        if self.app_env in {"development", "testing"}:
+            return "arogya-ai-dev-insecure-secret-key-at-least-32-characters"
+        raise ValueError("SECRET_KEY must be explicitly configured in staging and production environments")
 
     @property
     def masked_database_url(self) -> str | None:

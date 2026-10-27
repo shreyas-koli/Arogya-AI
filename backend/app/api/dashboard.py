@@ -11,11 +11,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.db import get_db
+from backend.app.db.models import User
 from backend.app.errors import ErrorResponse
 from backend.app.schemas.dashboard import (
     AnalysisRunStatus,
     DashboardOverviewResponse,
 )
+from backend.app.security.dependencies import require_permission
+from backend.app.security.roles import Permission
 from backend.app.services.dashboard import DashboardService
 from backend.app.settings import Settings, get_settings
 
@@ -25,6 +28,14 @@ router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"],
     responses={
+        401: {
+            "model": ErrorResponse,
+            "description": "Authentication required",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Forbidden: insufficient permissions",
+        },
         422: {
             "model": ErrorResponse,
             "description": "Validation error or invalid query parameter bounds",
@@ -67,6 +78,7 @@ def get_dashboard_overview(
         alias="status",
         description="Optional analysis run lifecycle status filter ('queued', 'running', 'completed', 'failed', 'abstained')",
     ),
+    current_user: User = Depends(require_permission(Permission.PATIENT_READ)),
     session: Session = Depends(get_db),
 ) -> DashboardOverviewResponse:
     """Aggregate dashboard metrics across clinical and operational domain entities."""

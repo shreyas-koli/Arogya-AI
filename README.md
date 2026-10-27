@@ -9,8 +9,8 @@ A modular, research-oriented healthcare intelligence and clinical decision-suppo
 
 ## 1. Project Status
 
-* **Current Stage:** Module 6 (Patient Intelligence) Complete — All Seven Phases Implemented & Verified.
-* **Implementation State:** Core backend service (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 46 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, logical backup/restore tooling, database-backed `DashboardRepository`, `DashboardService`, versioned REST endpoint `GET /api/v1/dashboard/overview`, and complete Patient Intelligence REST router (`/api/v1/patients`, `/api/v1/encounters`) covering patient CRUD, search, pagination, demographic filtering, encounters lifecycle, observation vitals logging, data quality scoring, and clinical timeline are implemented and verified with 204 automated backend tests. Frontend foundation, design system, Overview Dashboard, and Patient Intelligence workspace are complete with Next.js 16 (App Router), TypeScript, ESLint 9, Vanilla CSS design tokens, responsive application shell, 21-module canonical route architecture (`frontend/docs/ROUTES.md`), patient cohort management (`PatientList`), profile tabs with honest empty states (`PatientProfile`), dialog forms (`RegisterPatientDialog`, `EditPatientDialog`, `NewEncounterDialog`, `RecordObservationDialog`), data completeness scoring, physiological bound consistency warnings, and typed API client (`frontend/services/patients.ts`) integrated into `/patients` with live database synchronization verified with 138 automated unit tests across 33 suites, zero TypeScript errors, zero ESLint warnings, and verified production static build across all 19 routes.
+* **Current Stage:** Module 7 (Security, Identity & File Handling) Complete — All Seven Phases Implemented & Verified.
+* **Implementation State:** Core backend platform (FastAPI), health & error conventions, OpenAPI contracts, PostgreSQL engine/session infrastructure, 8 healthcare domain models, 46 Pydantic data schemas, Alembic migrations (`98574e91500e`), synthetic development seed data, data access repositories, clinical domain services, database verification utility, logical backup/restore tooling, database-backed `DashboardRepository`, `DashboardService`, versioned REST endpoint `GET /api/v1/dashboard/overview`, complete Patient Intelligence REST router (`/api/v1/patients`, `/api/v1/encounters`), and Module 7 Security & File Handling infrastructure (`/api/v1/auth`, `/api/v1/assets`) featuring canonical RBAC (`administrator`, `doctor_reviewer`, `researcher`), bcrypt salt-12 password hashing, PyJWT bearer token sessions, server-side route authorization dependencies, append-only security audit event logging with credential sanitization, safe MIME and magic-byte verified file ingestion (PNG, JPEG, PDF, DICOM), server-generated UUID storage outside web roots (`storage/uploads`), and resource-authorized binary downloads are implemented and verified with 231 automated backend tests across 20 test modules. Frontend foundation, design system, Overview Dashboard, Patient Intelligence workspace, and interactive Security & Asset console are complete with Next.js 16 (App Router), TypeScript, ESLint 9, Vanilla CSS design tokens, responsive application shell, 21-module canonical route architecture (`frontend/docs/ROUTES.md`), client-side token injection (`frontend/services/auth.ts`), patient cohort management, longitudinal timelines, dialog modals, data quality indicators, and interactive security controls on `/security` verified with 138 automated unit tests across 33 suites, zero TypeScript errors, zero ESLint warnings, and verified production static build across all 19 routes.
 
 
 
@@ -76,6 +76,7 @@ Detailed specifications governing system architecture, safety constraints, data 
 * **[System Architecture (ARCHITECTURE.md)](docs/architecture/ARCHITECTURE.md):** Target component boundaries, proposed request flow, and trust boundaries.
 * **[Configuration & Environment Validation (CONFIGURATION.md)](docs/architecture/CONFIGURATION.md):** Settings reference, environment variable mappings, validation rules, and runtime hardening.
 * **[API Conventions (API_CONVENTIONS.md)](docs/architecture/API_CONVENTIONS.md):** REST API design conventions, prefixing, OpenAPI documentation standards, and error envelopes.
+* **[Security & Identity Architecture (SECURITY.md)](docs/governance/SECURITY.md):** RBAC permissions matrix, session security, safe file ingestion, and audit event specifications.
 * **[Intended Use & Non-Goals (INTENDED_USE_AND_NON_GOALS.md)](docs/governance/INTENDED_USE_AND_NON_GOALS.md):** Authorized research scope, explicit non-goals, and clinical safety tenets.
 * **[Data Governance Framework (DATA_GOVERNANCE.md)](docs/governance/DATA_GOVERNANCE.md):** Data classification, zero-PHI policy, dataset provenance, and incident response.
 * **[Module Dependencies & Execution Order (MODULE_DEPENDENCIES.md)](docs/architecture/MODULE_DEPENDENCIES.md):** Full 21-module roadmap matrix, prerequisites, and parallelization rules.
@@ -89,7 +90,7 @@ The backend application runtime is configured with Python 3.14+ in the isolated 
 
 ### Quick Start & Verification
 ```powershell
-# 1. Run backend test suite (195 tests)
+# 1. Run backend test suite (231 tests)
 .\.venv\Scripts\python.exe -m pytest
 
 # 2. Run backend development server

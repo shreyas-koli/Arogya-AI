@@ -1,21 +1,23 @@
 """Arogya AI — Patient Intelligence & Clinical Data Ingestion API Endpoints.
 
-Module 6: Patient Intelligence.
+Module 6: Patient Intelligence & Module 7: Security, Identity & File Handling.
 Exposes REST endpoints for:
 - Patient cohort listing, search, filtering, and pagination
 - Patient profile creation and updates with Pydantic validation
 - Clinical encounter creation, status tracking, and timeline retrieval
 - Physiological observation recording linked to encounters and patients
 - Data quality completeness scoring and unit/demographic consistency evaluation
+Enforces least-privilege server-side authorization and cryptographic audit logging.
 """
 
 from typing import Sequence
 from uuid import UUID
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.db import get_db
+from backend.app.db.models import User
 from backend.app.errors import ErrorResponse
 from backend.app.schemas.analysis import AnalysisRunResponse
 from backend.app.schemas.common import PaginatedResponse
@@ -37,6 +39,9 @@ from backend.app.schemas.patient import (
     PatientTimelineResponse,
     PatientUpdate,
 )
+from backend.app.security.dependencies import require_permission
+from backend.app.security.roles import Permission
+from backend.app.services.audit import AuditService
 from backend.app.services.clinical import ClinicalService
 from backend.app.services.exceptions import (
     ConsistencyError,
@@ -49,6 +54,14 @@ logger = logging.getLogger("arogya.patients")
 router = APIRouter(
     tags=["Patient Intelligence"],
     responses={
+        401: {
+            "model": ErrorResponse,
+            "description": "Authentication required",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Forbidden: insufficient permissions",
+        },
         404: {
             "model": ErrorResponse,
             "description": "Requested patient or clinical entity not found",
@@ -100,6 +113,7 @@ def list_patients(
     ),
     page: int = Query(default=1, ge=1, description="1-based page number"),
     page_size: int = Query(default=20, ge=1, le=100, description="Records per page"),
+    current_user: User = Depends(require_permission(Permission.PATIENT_READ)),
     session: Session = Depends(get_db),
 ) -> PaginatedResponse[PatientResponse]:
     """List patients with search, filtering, and pagination."""
@@ -134,12 +148,24 @@ def list_patients(
 )
 def create_patient(
     payload: PatientCreate,
+    request: Request,
+    current_user: User = Depends(require_permission(Permission.PATIENT_CREATE)),
     session: Session = Depends(get_db),
 ) -> PatientResponse:
     """Create a new patient record with uniqueness enforcement and audit logging."""
     service = ClinicalService(session)
     try:
         patient = service.create_patient(data=payload)
+        AuditService(session).record_event(
+            event_type="patient.created",
+            action="create",
+            actor_id=current_user.id,
+            resource_type="patient",
+            resource_id=str(patient.id),
+            description=f"Registered patient profile '{patient.mrn_pseudonym}'",
+            metadata={"mrn_pseudonym": patient.mrn_pseudonym, "is_synthetic": patient.is_synthetic},
+            request=request,
+        )
         session.commit()
         return PatientResponse.model_validate(patient)
     except DuplicateEntityError as exc:
@@ -159,6 +185,7 @@ def create_patient(
 )
 def get_patient(
     patient_id: UUID,
+    current_user: User = Depends(require_permission(Permission.PATIENT_READ)),
     session: Session = Depends(get_db),
 ) -> PatientResponse:
     """Retrieve patient record by ID."""
@@ -182,12 +209,23 @@ def get_patient(
 def update_patient(
     patient_id: UUID,
     payload: PatientUpdate,
+    request: Request,
+    current_user: User = Depends(require_permission(Permission.PATIENT_UPDATE)),
     session: Session = Depends(get_db),
 ) -> PatientResponse:
     """Update patient demographic attributes."""
     service = ClinicalService(session)
     try:
         updated = service.update_patient(patient_id=patient_id, data=payload)
+        AuditService(session).record_event(
+            event_type="patient.updated",
+            action="update",
+            actor_id=current_user.id,
+            resource_type="patient",
+            resource_id=str(patient_id),
+            description=f"Updated patient profile '{updated.mrn_pseudonym}'",
+            request=request,
+        )
         session.commit()
         return PatientResponse.model_validate(updated)
     except EntityNotFoundError as exc:
@@ -212,6 +250,7 @@ def update_patient(
 )
 def get_patient_data_quality(
     patient_id: UUID,
+    current_user: User = Depends(require_permission(Permission.PATIENT_READ)),
     session: Session = Depends(get_db),
 ) -> DataQualityReport:
     """Compute demographic completeness, clinical continuity, and measurement unit integrity."""
@@ -235,6 +274,7 @@ def get_patient_data_quality(
 def get_patient_timeline(
     patient_id: UUID,
     limit: int = Query(default=50, ge=1, le=200, description="Max timeline events to return"),
+    current_user: User = Depends(require_permission(Permission.PATIENT_READ)),
     session: Session = Depends(get_db),
 ) -> PatientTimelineResponse:
     """Retrieve chronological unified event timeline for a patient."""
@@ -265,6 +305,7 @@ def list_patient_encounters(
     status_filter: str | None = Query(default=None, alias="status", description="Filter by encounter status"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
+    current_user: User = Depends(require_permission(Permission.ENCOUNTER_READ)),
     session: Session = Depends(get_db),
 ) -> PaginatedResponse[EncounterResponse]:
     """List encounters for a patient."""
@@ -301,6 +342,8 @@ def list_patient_encounters(
 def create_patient_encounter(
     patient_id: UUID,
     payload: EncounterCreatePayload,
+    request: Request,
+    current_user: User = Depends(require_permission(Permission.ENCOUNTER_CREATE)),
     session: Session = Depends(get_db),
 ) -> EncounterResponse:
     """Create a new clinical encounter associated with a patient."""
@@ -314,6 +357,16 @@ def create_patient_encounter(
     )
     try:
         encounter = service.create_encounter(data=encounter_data)
+        AuditService(session).record_event(
+            event_type="encounter.created",
+            action="create",
+            actor_id=current_user.id,
+            resource_type="encounter",
+            resource_id=str(encounter.id),
+            description=f"Created clinical encounter for patient '{patient_id}'",
+            metadata={"patient_id": str(patient_id), "encounter_type": payload.encounter_type},
+            request=request,
+        )
         session.commit()
         return EncounterResponse.model_validate(encounter)
     except EntityNotFoundError as exc:
@@ -333,6 +386,7 @@ def create_patient_encounter(
 )
 def get_encounter(
     encounter_id: UUID,
+    current_user: User = Depends(require_permission(Permission.ENCOUNTER_READ)),
     session: Session = Depends(get_db),
 ) -> EncounterResponse:
     """Retrieve encounter details."""
@@ -356,12 +410,23 @@ def get_encounter(
 def update_encounter(
     encounter_id: UUID,
     payload: EncounterUpdate,
+    request: Request,
+    current_user: User = Depends(require_permission(Permission.ENCOUNTER_UPDATE)),
     session: Session = Depends(get_db),
 ) -> EncounterResponse:
     """Update encounter status or conclusion time."""
     service = ClinicalService(session)
     try:
         updated = service.update_encounter(encounter_id=encounter_id, data=payload)
+        AuditService(session).record_event(
+            event_type="encounter.updated",
+            action="update",
+            actor_id=current_user.id,
+            resource_type="encounter",
+            resource_id=str(encounter_id),
+            description=f"Updated encounter '{encounter_id}' details",
+            request=request,
+        )
         session.commit()
         return EncounterResponse.model_validate(updated)
     except EntityNotFoundError as exc:
@@ -388,6 +453,7 @@ def list_encounter_observations(
     encounter_id: UUID,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
+    current_user: User = Depends(require_permission(Permission.OBSERVATION_READ)),
     session: Session = Depends(get_db),
 ) -> PaginatedResponse[ObservationResponse]:
     """List observations for an encounter."""
@@ -423,6 +489,8 @@ def list_encounter_observations(
 def create_encounter_observation(
     encounter_id: UUID,
     payload: ObservationCreatePayload,
+    request: Request,
+    current_user: User = Depends(require_permission(Permission.OBSERVATION_CREATE)),
     session: Session = Depends(get_db),
 ) -> ObservationResponse:
     """Record an observation linked to an encounter."""
@@ -447,6 +515,16 @@ def create_encounter_observation(
     )
     try:
         obs = service.create_observation(data=obs_data)
+        AuditService(session).record_event(
+            event_type="observation.created",
+            action="create",
+            actor_id=current_user.id,
+            resource_type="observation",
+            resource_id=str(obs.id),
+            description=f"Recorded observation '{obs.code}' for encounter '{encounter_id}'",
+            metadata={"encounter_id": str(encounter_id), "code": payload.code},
+            request=request,
+        )
         session.commit()
         return ObservationResponse.model_validate(obs)
     except (ConsistencyError, EntityNotFoundError) as exc:
@@ -469,6 +547,7 @@ def list_patient_observations(
     code: str | None = Query(default=None, description="Optional LOINC concept filter"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=200),
+    current_user: User = Depends(require_permission(Permission.OBSERVATION_READ)),
     session: Session = Depends(get_db),
 ) -> PaginatedResponse[ObservationResponse]:
     """List longitudinal observations for a patient."""
@@ -507,6 +586,7 @@ def list_patient_analysis_runs(
     status_filter: str | None = Query(default=None, alias="status", description="Filter by run status"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
+    current_user: User = Depends(require_permission(Permission.ANALYSIS_READ)),
     session: Session = Depends(get_db),
 ) -> PaginatedResponse[AnalysisRunResponse]:
     """List AI analysis runs for a patient."""

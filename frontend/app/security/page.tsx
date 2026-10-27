@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PlannedFeatureState } from "@/components/states";
+import { SecurityConsole } from "@/components/security/SecurityConsole";
 import styles from "../page.module.css";
 
 export const metadata: Metadata = {
@@ -41,6 +42,8 @@ export default function SecurityPage() {
             "Security Boundaries: Target architecture trust boundary specifications",
           ]}
         />
+
+        <SecurityConsole />
 
         <section aria-labelledby="security-capabilities-heading">
           <div className={styles.sectionHeading}>

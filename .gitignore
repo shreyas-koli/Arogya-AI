@@ -178,6 +178,10 @@ backups/
 *.dump
 *.sql.gz
 
+# Local file and asset storage (Module 7)
+storage/
+storage/uploads/
+
 # ------------------------------------------------------------------------------
 # General Logs & Temporary Files
 # ------------------------------------------------------------------------------

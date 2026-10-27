@@ -1,6 +1,6 @@
 """Arogya AI - Uploaded Asset Metadata API Schemas.
 
-Module 3, Phase 3.4: Pydantic Request/Response Schemas & Data Contracts.
+Module 3, Phase 3.4 & Module 7, Phase 7.5: Uploaded Asset Contracts.
 Defines contracts for uploaded asset metadata (e.g. imaging, clinical documents).
 Strictly separates metadata tracking from binary storage:
 - Binary payloads are handled by dedicated storage services; JSON schemas manage metadata only.
@@ -76,3 +76,14 @@ class AssetMetadataResponse(AssetMetadataBase, ORMModel):
     created_at: datetime = Field(
         description="Asset registration timestamp in UTC",
     )
+
+
+# Alias for Module 7 naming consistency
+UploadedAssetResponse = AssetMetadataResponse
+
+__all__ = [
+    "AssetMetadataBase",
+    "AssetMetadataCreate",
+    "AssetMetadataResponse",
+    "UploadedAssetResponse",
+]

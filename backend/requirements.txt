@@ -14,3 +14,8 @@ psycopg[binary]>=3.2.0,<4.0.0
 
 # Module 3, Phase 3.5: Alembic Migrations & Schema Management
 alembic>=1.13.0,<2.0.0
+
+# Module 7: Security, Identity & File Handling
+bcrypt>=4.0.0,<6.0.0
+pyjwt>=2.8.0,<3.0.0
+python-multipart>=0.0.9,<1.0.0

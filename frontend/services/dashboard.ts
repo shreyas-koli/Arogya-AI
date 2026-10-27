@@ -13,6 +13,7 @@ import type {
   AnalysisRunStatus,
   DashboardOverviewResponse,
 } from "@/types/dashboard";
+import { getAuthHeader } from "@/services/auth";
 
 export interface DashboardApiFilterParams {
   /** Optional UTC Start date in YYYY-MM-DD format */
@@ -56,6 +57,16 @@ export class DashboardApiError extends Error {
   /** True if the request failed due to parameter validation */
   get isValidationError(): boolean {
     return this.status === 422 || this.code === "VALIDATION_ERROR";
+  }
+
+  /** True if the request failed due to missing or invalid credentials */
+  get isUnauthorized(): boolean {
+    return this.status === 401 || this.code === "UNAUTHORIZED";
+  }
+
+  /** True if the request failed due to insufficient permissions */
+  get isForbidden(): boolean {
+    return this.status === 403 || this.code === "FORBIDDEN";
   }
 }
 
@@ -110,6 +121,7 @@ export async function fetchDashboardOverview(
       method: "GET",
       headers: {
         Accept: "application/json",
+        ...getAuthHeader(),
       },
       signal: options.signal,
     });

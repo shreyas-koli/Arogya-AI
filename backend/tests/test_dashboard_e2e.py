@@ -125,7 +125,20 @@ def canonical_client(canonical_seeded_db: Session) -> TestClient:
     def override_get_db():
         yield canonical_seeded_db
 
+    from backend.app.db.models import Role
+    from backend.app.security.dependencies import get_current_user
+
+    e2e_user = User(
+        id=uuid.uuid4(),
+        username="e2e_clinician",
+        email="clinician@e2e.test",
+        full_name="E2E Clinician",
+        is_active=True,
+        roles=[Role(id=uuid.uuid4(), name="doctor_reviewer")],
+    )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: e2e_user
     client = TestClient(app)
     try:
         yield client
@@ -141,7 +154,20 @@ def multi_record_client(multi_record_db: Session) -> TestClient:
     def override_get_db():
         yield multi_record_db
 
+    from backend.app.db.models import Role
+    from backend.app.security.dependencies import get_current_user
+
+    e2e_user = User(
+        id=uuid.uuid4(),
+        username="e2e_clinician",
+        email="clinician@e2e.test",
+        full_name="E2E Clinician",
+        is_active=True,
+        roles=[Role(id=uuid.uuid4(), name="doctor_reviewer")],
+    )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = lambda: e2e_user
     client = TestClient(app)
     try:
         yield client

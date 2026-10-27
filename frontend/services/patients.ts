@@ -24,6 +24,7 @@ import type {
   PatientTimelineResponse,
   PatientUpdatePayload,
 } from "@/types/patients";
+import { getAuthHeader } from "@/services/auth";
 
 export class PatientsApiError extends Error {
   readonly status: number;
@@ -53,6 +54,14 @@ export class PatientsApiError extends Error {
   get isUnavailable(): boolean {
     return this.status === 503 || this.code === "SERVICE_UNAVAILABLE";
   }
+
+  get isUnauthorized(): boolean {
+    return this.status === 401 || this.code === "UNAUTHORIZED";
+  }
+
+  get isForbidden(): boolean {
+    return this.status === 403 || this.code === "FORBIDDEN";
+  }
 }
 
 export function getApiBaseUrl(): string {
@@ -77,6 +86,7 @@ async function requestJson<T>(
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...getAuthHeader(),
         ...fetchInit.headers,
       },
     });
