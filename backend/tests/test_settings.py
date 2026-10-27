@@ -14,7 +14,7 @@ from backend.app.settings import Settings
 
 def test_default_settings() -> None:
     """Verify default settings provide safe local development values."""
-    settings = Settings()
+    settings = Settings(_env_file=None)
     assert settings.app_name == "Arogya AI"
     assert settings.app_env == "development"
     assert settings.debug is False
