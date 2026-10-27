@@ -1135,3 +1135,101 @@ describe("Dashboard API Client Service (Phase 5.5)", () => {
     assert.ok(htmlUnavailable.includes("Simulating truthful unavailable state"));
   });
 });
+
+describe("End-to-End Workflow Verification (Phase 5.6)", () => {
+  it("builds query parameters with combined status and date range filters", () => {
+    const url = buildDashboardOverviewUrl({
+      status: "completed",
+      startDate: "2026-01-01",
+      endDate: "2026-01-31",
+    });
+    assert.ok(url.includes("status=completed"));
+    assert.ok(url.includes("start_date=2026-01-01"));
+    assert.ok(url.includes("end_date=2026-01-31"));
+  });
+
+  it("handles empty database responses gracefully in fetchDashboardOverview", async () => {
+    const emptyPayload = {
+      patients: {
+        total_patients: 0,
+        synthetic_patients: 0,
+        research_cohort_patients: 0,
+        generated_at: "2026-01-01T00:00:00Z",
+      },
+      encounters: {
+        total_encounters: 0,
+        planned: 0,
+        in_progress: 0,
+        completed: 0,
+        cancelled: 0,
+        reporting_period_start: null,
+        reporting_period_end: null,
+        generated_at: "2026-01-01T00:00:00Z",
+      },
+      analysis: {
+        total_runs: 0,
+        by_status: { queued: 0, running: 0, completed: 0, failed: 0, abstained: 0 },
+        active_models_observed: [],
+        generated_at: "2026-01-01T00:00:00Z",
+      },
+      reviews: {
+        pending_count: 0,
+        requires_urgent_review_count: 0,
+        items: [],
+        generated_at: "2026-01-01T00:00:00Z",
+      },
+      recent_activity: {
+        total_events: 0,
+        activities: [],
+        generated_at: "2026-01-01T00:00:00Z",
+      },
+      generated_at: "2026-01-01T00:00:00Z",
+      environment: "testing",
+    };
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = (async () => ({
+        ok: true,
+        status: 200,
+        json: async () => emptyPayload,
+      })) as unknown as typeof fetch;
+
+      const data = await fetchDashboardOverview();
+      assert.strictEqual(data.patients.total_patients, 0);
+      assert.strictEqual(data.analysis.total_runs, 0);
+      assert.strictEqual(data.reviews.pending_count, 0);
+      assert.strictEqual(data.reviews.items.length, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("renders view mode switcher with explicit live and synthetic options", () => {
+    const html = renderToStaticMarkup(<Home initialMode="demo" />);
+    assert.ok(html.includes("Live Database"));
+    assert.ok(html.includes("Synthetic Demo"));
+    assert.ok(html.includes("Integration Pending"));
+    assert.ok(html.includes("Loading Skeleton"));
+  });
+
+  it("clearly distinguishes synthetic demo mode with explicit provenance banners", () => {
+    const html = renderToStaticMarkup(<Home initialMode="demo" />);
+    assert.ok(html.includes("SYNTH-PAT-0001"));
+    assert.ok(html.includes("Demonstration Provenance"));
+    assert.ok(html.includes("Module 3"));
+    assert.ok(html.includes("Real-time clinical metrics are never fabricated"));
+  });
+
+  it("preserves safety boundary and does not expose credentials or diagnostic assertions", () => {
+    const html = renderToStaticMarkup(<Home initialMode="demo" />);
+    // Zero-credentials rule
+    assert.ok(!html.includes("hashed_password"));
+    assert.ok(!html.includes("secret_key"));
+    assert.ok(!html.includes("access_token"));
+    // Safety boundary
+    assert.ok(html.includes("Research Prototype Review Boundary"));
+    assert.ok(!html.includes("Autonomous Diagnosis"));
+    assert.ok(!html.includes("FDA Approved"));
+  });
+});

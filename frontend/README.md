@@ -2,8 +2,8 @@
 
 This directory contains the Next.js web application for the Arogya AI clinical decision-support and healthcare intelligence research prototype.
 
-> **Status:** Module 5 (Overview Dashboard), Phase 5.5: Dashboard API Aggregation & Integration.<br/>
-> Connected the Next.js Overview Dashboard (`/`) to the live backend aggregation REST API (`GET /api/v1/dashboard/overview`) using a typed client service (`frontend/services/dashboard.ts`). Implemented dynamic live database synchronization, parameter serialization, configurable timeout abortion, and honest lifecycle states (live database presentation, synthetic demo fallback, loading skeletons, empty results, and 503 database-unavailable error handling with retry and demo toggle). Verified with 124 automated unit tests across 28 test suites, zero TypeScript errors, zero ESLint warnings, and clean static compilation of all 19 routes.
+> **Status:** Module 5 (Overview Dashboard), Phase 5.6: End-to-End Verification Complete.<br/>
+> Completed holistic verification of the Overview Dashboard across both backend aggregation services and frontend presentation layers. Validated live database metrics, synthetic demonstration mode with explicit provenance banners, combined date/status filters, empty dataset handling, error recovery with toggle between live retry and synthetic demo, and safety boundaries. Automated verification covers 129 tests across 29 test suites, zero TypeScript errors, zero ESLint warnings, and clean static compilation of all 19 routes.
 
 
 
@@ -47,7 +47,7 @@ All commands are executed from the `frontend/` directory:
 | `npm run start` | Production Server | Runs the compiled production server on port 3000. |
 | `npm run lint` | ESLint | Executes ESLint against all source files using Next.js core web vitals and TypeScript rules. |
 | `npm run type-check` | TypeScript Check | Runs `tsc --noEmit` to verify type safety without emitting build artifacts. |
-| `npm run test` | Automated Tests | Executes 124 component, state, dashboard, filter, visualization, API client, and route unit tests across 28 suites using `node:test` and `tsx`. |
+| `npm run test` | Automated Tests | Executes 129 component, state, dashboard, filter, visualization, API client, and end-to-end workflow unit tests across 29 suites using `node:test` and `tsx`. |
 
 ---
 
@@ -404,7 +404,7 @@ frontend/
 │   ├── dialog.test.tsx         # 6 focused unit tests for dialog keyboard & accessibility
 │   ├── states.test.tsx         # 13 unit tests covering all application states & 404
 │   ├── routes.test.tsx         # 26 unit tests verifying 21-module route coverage, sidebar, drawer, and header
-│   └── dashboard.test.tsx      # 55 unit tests covering dashboard cards, review table, filters, charts & API client
+│   └── dashboard.test.tsx      # 60 unit tests covering dashboard cards, review table, filters, charts, API client & e2e workflow
 └── public/                     # Static public assets (SVG icons, logos)
 ```
 
